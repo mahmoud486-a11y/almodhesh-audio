@@ -82,6 +82,19 @@ MENA_COUNTRIES = [
     "Mauritania", "Morocco", "Oman", "Palestine", "Qatar", "Saudi Arabia", "Sudan", "Syria", "Tunisia",
     "Turkey", "United Arab Emirates", "Yemen", "MENA region",
 ]
+# كلمات يجب أن يذكر الخبر الإنجليزي واحدة منها على الأقل (بلد، شعب، مدينة، أو المنطقة)،
+# حتى لا يُقبل خبر من خارج المنطقة لمجرد أن النموذج صنّفه "MENA region".
+MENA_KEYWORDS = [
+    "algeria", "algerian", "algiers", "bahrain", "bahraini", "manama", "egypt", "egyptian", "cairo", "alexandria",
+    "iran", "iranian", "tehran", "iraq", "iraqi", "baghdad", "basra", "erbil", "israel", "israeli", "jerusalem",
+    "tel aviv", "jordan", "jordanian", "amman", "kuwait", "kuwaiti", "lebanon", "lebanese", "beirut", "libya",
+    "libyan", "tripoli", "benghazi", "mauritania", "mauritanian", "morocco", "moroccan", "rabat", "casablanca",
+    "marrakech", "oman", "omani", "muscat", "palestine", "palestinian", "gaza", "west bank", "ramallah", "qatar",
+    "qatari", "doha", "saudi", "riyadh", "jeddah", "mecca", "makkah", "medina", "neom", "sudan", "sudanese",
+    "khartoum", "syria", "syrian", "damascus", "aleppo", "tunisia", "tunisian", "tunis", "turkey", "turkish",
+    "türkiye", "istanbul", "ankara", "emirates", "emirati", "uae", "dubai", "abu dhabi", "sharjah", "yemen",
+    "yemeni", "sanaa", "aden", "middle east", "north africa", "arab", "gulf", "mena",
+]
 CATEGORIES = ["economy", "technology", "health", "education", "science", "sport", "culture", "major event"]
 MIN_CATEGORIES = 4          # تنويع إلزامي: أربعة مجالات مختلفة على الأقل
 MAX_MAJOR_EVENTS = 1        # خبر واحد كحد أقصى عن الأحداث الكبرى/السياسة/النزاعات
@@ -267,7 +280,7 @@ LESSON_SCHEMA = {
 SYSTEM_PROMPT = """You write the daily lesson for "Almodhesh" (المدهش), a website where Arabic speakers learn American English from today's news at CEFR level A2–B1.
 
 From the numbered news list, choose exactly 6 stories. Selection policy (mandatory):
-- Every story must be about the Middle East and North Africa (MENA): it must happen in, or directly concern, a MENA country. Set "country" to that country, or "MENA region" for a story about several of them.
+- Every story must be about the Middle East and North Africa (MENA): it must happen in, or directly concern, a MENA country, and the English sentence must name that country, city or people. Countries elsewhere in Africa (for example Senegal, Nigeria, Kenya) are NOT MENA. Set "country" to that country, or "MENA region" for a story about several of them.
 - Make the lesson varied and useful: cover at least 4 different categories from economy, technology, health, education, science, sport, culture and major event. Prefer positive, practical and human-interest news: business and jobs, innovation, health care, schools and universities, research, sports results, arts, heritage, travel and food.
 - Use the category "major event" for wars, conflicts, attacks, elections, diplomacy and other political news. Include at most ONE such story, only if it is truly major, and describe it neutrally without graphic details.
 - Avoid opinion pieces, rumors, crime stories and sensational news. Prefer different sources and different countries.
@@ -276,7 +289,7 @@ From the numbered news list, choose exactly 6 stories. Selection policy (mandato
 For each story write:
 - "news_id": the number of the item you used. Every fact must come from that item only. Never invent details.
 - "category" and "country": as defined in the selection policy.
-- "en": ONE simple American English sentence that states the main fact, 60–115 characters, ending with a period. Use common words, present or past simple, American spelling. Spell numbers as digits or simple words.
+- "en": ONE simple American English sentence that states the main fact, 60–115 characters, ending with a period. Use common words, present or past simple, American spelling (center, defense, program). Spell numbers as digits or simple words.
 - "ar": a natural Modern Standard Arabic translation of that sentence.
 - "topic": a short Arabic title of 2–4 words.
 
@@ -351,6 +364,9 @@ def validate_lesson(data: dict, items: list[NewsItem], budget: int, known: dict)
     for n, s in enumerate(stories, 1):
         if s.get("country") not in MENA_COUNTRIES:
             errors.append(f"story {n}: must be about a MENA country (got {s.get('country')!r})")
+        text = " " + re.sub(r"[^a-zà-ÿ' -]", " ", s.get("en", "").lower()) + " "
+        if not any(re.search(rf"(?<![a-zà-ÿ]){re.escape(k)}(?![a-zà-ÿ])", text) for k in MENA_KEYWORDS):
+            errors.append(f"story {n}: the English sentence must name the MENA country, city or people it is about")
         if s.get("category") not in CATEGORIES:
             errors.append(f"story {n}: invalid category {s.get('category')!r}")
     cats = [s.get("category") for s in stories]

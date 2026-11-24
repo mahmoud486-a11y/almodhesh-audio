@@ -27,9 +27,16 @@ def news_items(n=15):
             for i in range(1, n + 1)]
 
 
-def model_answer(base=REAL_LESSON):
-    """رد نموذجي صالح مبني على درس 21 نوفمبر الحقيقي."""
+MENA_LESSON = json.loads((ROOT / "site/lessons/2026-11-24.json").read_text(encoding="utf-8"))
+# الخبر الخامس الأصلي عن السنغال (خارج المنطقة)؛ يُستبدل بخبر من المنطقة يحتوي الكلمتين نفسيهما
+MENA_LESSON["stories"][4]["en"] = "A sports court in Morocco will rule on a football case next week."
+MENA_LESSON["translations"].update({"morocco": "المغرب", "case": "قضية", "next": "القادم", "week": "أسبوع"})
+
+
+def model_answer(base=MENA_LESSON):
+    """رد نموذجي صالح مبني على درس 24 نوفمبر الحقيقي (أخبار الشرق الأوسط وشمال أفريقيا)."""
     trans = json.loads((ROOT / "site/lessons/_base-translations.json").read_text(encoding="utf-8"))
+    trans.update(base.get("translations", {}))
     return {
         "archive_title": base["archive_title"],
         "stories": [{"news_id": i, "category": c, "country": "Egypt", "topic": s["topic"], "en": s["en"], "ar": s["ar"]}
@@ -91,6 +98,14 @@ class ValidationTests(unittest.TestCase):
         joined = " | ".join(dl.validate_lesson(bad, news_items(), 1000, {}))
         self.assertIn("story 1: must be about a MENA country", joined)
         self.assertIn("at most 1 'major event'", joined)
+
+    def test_story_must_name_a_mena_place(self):
+        ans = model_answer()
+        ans["stories"][0]["en"] = "A sports court will soon rule on whether Senegal must give up its Africa Cup title."
+        ans["stories"][1]["en"] = "Oman's new financial center has registered its first companies before opening."
+        joined = " | ".join(dl.validate_lesson(ans, news_items(), 1000, {}))
+        self.assertIn("story 1: the English sentence must name", joined)
+        self.assertNotIn("story 2: the English sentence must name", joined)
 
     def test_variety_enforced(self):
         bad = model_answer()

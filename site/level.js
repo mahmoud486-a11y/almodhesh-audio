@@ -15,9 +15,6 @@
   document.write('<script src="lessons-data-' + level + '.js"><\/script>');
 
   document.addEventListener("DOMContentLoaded", () => {
-    const stat = [...document.querySelectorAll(".stats span")].find(s => s.textContent.includes("المستوى"));
-    if (stat) stat.textContent = "المستوى " + LEVELS[level].cefr;
-
     const bar = document.createElement("div");
     bar.className = "level-switch";
     bar.setAttribute("role", "group");
@@ -33,6 +30,40 @@
       if (view) set(sessionStorage, "almodhesh-view", view.dataset.view);
       location.reload();
     });
+
+    // دروس الأخبار الأربعة: تعديل الرقم في النصوص الموجودة فقط (ستة ← أربعة)، ومطابقة أزرار أرقام الأخبار
+    const NUM = { 3: ["ثلاثة", "الثلاثة"], 4: ["أربعة", "الأربعة"], 5: ["خمسة", "الخمسة"], 6: ["ستة", "الستة"] };
+    const targets = [
+      [document.querySelector("#today .hero > p:not(.eyebrow)"), "count"],
+      [document.querySelector("#heard")?.parentElement, "slash"],
+      [document.querySelector(".sentence-summary h2"), "def"],
+      [document.getElementById("playAll20"), "def"]
+    ].filter(([el]) => el).map(([el, kind]) => ({ el, kind, html: el.innerHTML }));
+    function adapt() {
+      const n = activeStories.length;
+      targets.forEach(t => {
+        if (n === 6 || !NUM[n]) { t.el.innerHTML = t.html; return; }
+        t.el.innerHTML = t.kind === "slash" ? t.html.replace("/6", "/" + n)
+          : t.kind === "count" ? t.html.replace("ستة أخبار", NUM[n][0] + " أخبار") : t.html.replace("الستة", NUM[n][1]);
+      });
+      const box = document.getElementById("numbers");
+      if (box && box.children.length !== n) {
+        box.replaceChildren();
+        activeStories.forEach((_, i) => {
+          const b = document.createElement("button");
+          b.textContent = i + 1;
+          b.setAttribute("aria-label", `الخبر ${i + 1}`);
+          b.onclick = () => { stopPlayback(); current = i; render(); };
+          box.append(b);
+        });
+        render();
+      }
+      const heard = document.getElementById("heard");
+      if (heard) heard.textContent = Math.min(+heard.textContent || 0, n); // عدّاد الجمل لا يتجاوز عدد الأخبار
+    }
+    const loadPrevious = loadLesson;
+    loadLesson = function (key) { loadPrevious(key); adapt(); };
+    adapt();
 
     // العودة إلى التبويب نفسه بعد تغيير المستوى
     const back = get(sessionStorage, "almodhesh-view");

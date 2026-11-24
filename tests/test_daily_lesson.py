@@ -22,7 +22,8 @@ REAL_LESSON = json.loads((ROOT / "site/lessons/2026-11-21.json").read_text(encod
 
 def news_items(n=15):
     now = datetime.now(timezone.utc)
-    return [dl.NewsItem(id=i, source_ar="ناسا", title=f"Title {i}", summary="s",
+    sources = ["ناسا", "بي بي سي", "الجزيرة الإنجليزية", "ذا ناشيونال"]
+    return [dl.NewsItem(id=i, source_ar=sources[(i - 1) % 4], title=f"Title {i}", summary="s",
                         url=f"https://example.org/news/{i}", published=(now - timedelta(hours=i)).isoformat())
             for i in range(1, n + 1)]
 
@@ -131,18 +132,18 @@ class ValidationTests(unittest.TestCase):
 
 import multilevel as ml  # noqa: E402
 
-ML_COUNTRIES = ["Egypt", "Morocco", "Oman", "Jordan", "Qatar", "Tunisia"]
+ML_COUNTRIES = ["Egypt", "Morocco", "Oman", "Jordan"]
 ML_POOL = ("students teachers schools doctors hospitals farmers workers markets prices factories engineers "
            "scientists researchers players coaches artists museums festivals tourists hotels airports trains "
            "banks companies startups phones computers robots satellites rockets clinics vaccines patients "
            "rivers forests deserts beaches gardens parks bridges roads ports ships trucks buses libraries "
            "universities classes exams lessons books films songs dancers singers writers").split()
-ML_WORDS_PER_SENTENCE = {"beginner": 5, "intermediate": 11, "advanced": 22}
+ML_WORDS_PER_SENTENCE = {"beginner": 5, "intermediate": 11, "advanced": 20}
 
 
 def ml_facts_answer():
-    cats = ["economy", "technology", "health", "education", "science", "sport"]
-    return {"archive_title": "اقتصاد، تقنية، صحة، تعليم، علوم ورياضة",
+    cats = ["economy", "technology", "health", "sport"]
+    return {"archive_title": "اقتصاد، تقنية، صحة ورياضة",
             "stories": [{"news_id": i + 1, "category": cats[i], "country": c, "topic": f"عنوان {i + 1}",
                          "facts": [f"{c} opened a new project.", "The project started this week."]}
                         for i, c in enumerate(ML_COUNTRIES)]}
@@ -167,8 +168,7 @@ class MultiLevelValidationTests(unittest.TestCase):
     def test_fixture_levels_are_valid(self):
         self.assertEqual(ml.validate_facts(ml_facts_answer(), news_items()), [])
         for level in ml.LEVEL_ORDER:
-            budget = 1000 if level == "intermediate" else None  # الحد اليومي يخص المستويات المصوّتة فقط
-            self.assertEqual(ml.validate_level(ml_level_answer(level), level, {}, budget), [], level)
+            self.assertEqual(ml.validate_level(ml_level_answer(level), level, {}, ml.LEVELS[level]["audio_max"]), [], level)
 
     def test_lengths_are_level_specific(self):
         adv = ml_level_answer("advanced")
@@ -191,12 +191,24 @@ class MultiLevelValidationTests(unittest.TestCase):
         bad = ml_facts_answer()
         bad["stories"][0]["country"] = "Canada"
         bad["stories"][1]["facts"] = ["Senegal won a match.", "Fans were happy."]
-        for st in bad["stories"][2:5]:
+        for st in bad["stories"][2:4]:
             st["category"] = "major event"
         joined = " | ".join(ml.validate_facts(bad, news_items()))
+        self.assertIn("at least 4 different categories", joined)
         self.assertIn("story 1: must be about a MENA country", joined)
         self.assertIn("story 2: the facts must name", joined)
         self.assertIn("at most 1 'major event'", joined)
+
+    def test_four_stories_and_three_sources(self):
+        ok = ml_facts_answer()
+        self.assertEqual(len(ok["stories"]), 4)
+        six = ml_facts_answer()
+        six["stories"] += [dict(six["stories"][0], news_id=9), dict(six["stories"][1], news_id=10)]
+        self.assertTrue(any("exactly 4 stories" in e for e in ml.validate_facts(six, news_items())))
+        same = ml_facts_answer()
+        for st, nid in zip(same["stories"], [1, 5, 9, 13]):  # كلها من المصدر نفسه
+            st["news_id"] = nid
+        self.assertTrue(any("at least 3 different sources" in e for e in ml.validate_facts(same, news_items())))
 
     def test_audio_budget_only_for_audio_levels(self):
         adv = ml_level_answer("advanced")
@@ -281,29 +293,31 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(set(lesson["levels"]), set(ml.LEVEL_ORDER))
         for level in ml.LEVEL_ORDER:
             v = lesson["levels"][level]
-            self.assertEqual(len(v["stories"]), 6)
+            self.assertEqual(len(v["stories"]), 4)
             self.assertEqual(len(v["words"]), 20)
             self.assertEqual(len(v["exercises"]), 3)
             self.assertNotIn("same_as", v)
             self.assertIn(f"{level} ", self.data(level))
         urls = {l: [s["url"] for s in lesson["levels"][l]["stories"]] for l in ml.LEVEL_ORDER}
         self.assertEqual(urls["beginner"], urls["advanced"])  # المصادر نفسها في كل المستويات
-        self.assertEqual(urls["beginner"], [i.url for i in news_items()[:6]])
+        self.assertEqual(urls["beginner"], [i.url for i in news_items()[:4]])
         self.assertIn('"2026-11-18"', self.data("beginner"))  # الأرشيف القديم باقٍ في كل مستوى
 
-    def test_audio_only_for_intermediate_by_default_and_within_cap(self):
+    def test_elevenlabs_for_all_levels_within_cap(self):
         code, _ = self.full_run()
         self.assertEqual(code, 0)
         lesson = json.loads(self.lesson_path.read_text(encoding="utf-8"))
-        audio = lesson["levels"]["intermediate"]["audio"]
-        self.assertTrue(all(audio["stories"]) and all(audio["words"]))  # كل جملة وكلمة لها تسجيل
-        reused = [p for p in audio["words"] if "/2026-11-25/" not in p]
-        self.assertTrue(reused)  # كلمة "companies" سُجّلت في درس 24 نوفمبر فأُعيد استخدامها
-        self.assertEqual(len(self.spoken), 26 - len(reused))
-        self.assertTrue(all("/intermediate/" in p for p in audio["stories"]))
-        self.assertIsNone(lesson["levels"]["beginner"]["audio"]["stories"])  # صوت المتصفح
+        self.assertNotIn("pending_audio", lesson)
+        for level in ml.LEVEL_ORDER:
+            audio = lesson["levels"][level]["audio"]
+            self.assertEqual(len(audio["stories"]), 4)
+            self.assertTrue(all(audio["stories"]) and all(audio["words"]), level)  # لا شيء بصوت المتصفح
         used = sum(json.loads((self.tmp / "audio/usage.json").read_text()).values())
-        self.assertLessEqual(used, 1000)
+        self.assertLessEqual(used, dl.DAILY_MAX_CHARS)
+        reused = [p for l in ml.LEVEL_ORDER for p in lesson["levels"][l]["audio"]["words"] if f"/{self.day}/{l}/" not in p]
+        self.assertTrue(reused)  # كلمات مكررة بين المستويات أو مسجّلة سابقًا تعيد استخدام تسجيلها
+        self.assertEqual(len(self.spoken), 3 * (4 + 20) - len(reused))
+        self.assertIn(f'const lessonDate="{self.day}"', self.data("advanced"))
 
     def test_new_lessons_stay_readable_by_previous_code(self):
         self.full_run()
@@ -325,12 +339,12 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(self.spoken, [])
 
     def test_disabled_level_reuses_intermediate_text_and_audio(self):
-        code, _ = self.full_run({"LESSON_LEVELS": "intermediate", "AUDIO_LEVELS": "intermediate,beginner"})
+        code, _ = self.full_run({"LESSON_LEVELS": "intermediate"})
         self.assertEqual(code, 0)
         self.assertEqual(self.calls, ["facts", "intermediate"])
         lesson = json.loads(self.lesson_path.read_text(encoding="utf-8"))
         self.assertEqual(lesson["levels"]["beginner"]["same_as"], "intermediate")
-        self.assertLessEqual(len(self.spoken), 26)  # لا تسجيل مكرر: المبتدئ يعيد استخدام تسجيلات المتوسط
+        self.assertLessEqual(len(self.spoken), 24)  # لا تسجيل مكرر: المستويات المنسوخة تعيد استخدام تسجيلات المتوسط
         self.assertEqual(lesson["levels"]["beginner"]["audio"], lesson["levels"]["intermediate"]["audio"])
 
     def test_failed_level_falls_back_without_losing_the_day(self):
@@ -349,17 +363,25 @@ class PipelineTests(unittest.TestCase):
         self.assertFalse(self.lesson_path.exists())
         self.assertEqual({l: self.data(l) for l in ml.LEVEL_ORDER}, before)
 
-    def test_partial_audio_when_cap_is_low(self):
+    def test_incomplete_audio_is_held_back_then_published_next_run(self):
         (self.tmp / "audio").mkdir()
         today = dl.tts.local_date(dl.TIMEZONE)
-        (self.tmp / "audio/usage.json").write_text(json.dumps({today: 800}))
+        (self.tmp / "audio/usage.json").write_text(json.dumps({today: dl.DAILY_MAX_CHARS - 600}))
+        before = self.data("intermediate")
         code, _ = self.full_run()
         self.assertEqual(code, 1)
-        used = json.loads((self.tmp / "audio/usage.json").read_text())[today]
-        self.assertLessEqual(used, 1000)
+        self.assertLessEqual(json.loads((self.tmp / "audio/usage.json").read_text())[today], dl.DAILY_MAX_CHARS)
         lesson = json.loads(self.lesson_path.read_text(encoding="utf-8"))
-        self.assertIn(None, lesson["levels"]["intermediate"]["audio"]["stories"] +
-                      (lesson["levels"]["intermediate"]["audio"]["words"] or [None]))
+        self.assertTrue(lesson["pending_audio"])  # محفوظ لكنه غير منشور: لا صوت متصفح ولا درس ناقص
+        self.assertEqual(self.data("intermediate"), before)
+        # اليوم التالي (حد جديد): تُستكمل التسجيلات دون أي طلب Claude جديد، ثم يُنشر
+        (self.tmp / "audio/usage.json").write_text(json.dumps({today: 0}))
+        self.calls.clear()
+        code, _ = self.full_run()
+        self.assertEqual(code, 0)
+        self.assertEqual(self.calls, [])
+        self.assertNotIn("pending_audio", json.loads(self.lesson_path.read_text(encoding="utf-8")))
+        self.assertIn(f'const lessonDate="{self.day}"', self.data("intermediate"))
 
     def test_insufficient_balance_generates_nothing(self):
         env = {"ANTHROPIC_API_KEY": "a", "ELEVENLABS_API_KEY": "e"}
@@ -369,7 +391,8 @@ class PipelineTests(unittest.TestCase):
             code, _ = self.run_cli("run", env=env)
         synth.assert_not_called()
         self.assertEqual(code, 1)
-        self.assertTrue(self.lesson_path.exists())  # النص منشور ويعمل بصوت المتصفح
+        self.assertTrue(json.loads(self.lesson_path.read_text(encoding="utf-8"))["pending_audio"])
+        self.assertNotIn(f'"{self.day}"', self.data("intermediate"))  # يبقى آخر درس مكتمل منشورًا
 
     def test_friday_and_saturday_are_review_days(self):
         before = self.data("intermediate")
@@ -382,6 +405,18 @@ class PipelineTests(unittest.TestCase):
             fetch.assert_not_called()
         self.assertEqual(self.calls, [])
         self.assertEqual(self.data("intermediate"), before)
+
+    def test_backfill_records_old_lessons_without_audio(self):
+        bal, syn = self.tts()
+        with bal, syn, mock.patch.dict(os.environ, {"ELEVENLABS_API_KEY": "e"}, clear=True), \
+             mock.patch.object(dl, "DAILY_MAX_CHARS", 5000), redirect_stdout(io.StringIO()):
+            code = dl.main(["backfill", "--daily-max-chars", "5000"])
+        self.assertEqual(code, 0)
+        for key in ("2026-11-18", "2026-11-19", "2026-11-20"):
+            lesson = json.loads((self.site / f"lessons/{key}.json").read_text(encoding="utf-8"))
+            self.assertTrue(all(lesson["audio"]["stories"]) and all(lesson["audio"]["words"]), key)
+        self.assertNotIn("2026-11-21/news", " ".join(self.spoken))  # الدروس المسجّلة سابقًا لا يُعاد تسجيلها
+        self.assertIn('"2026-11-18":[', self.data("intermediate").split("const lessonAudio=")[1])
 
     def test_no_key_changes_nothing(self):
         before = self.data("intermediate")

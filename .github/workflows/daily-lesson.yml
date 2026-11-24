@@ -76,7 +76,7 @@ jobs:
           LESSON_MODEL: ${{ vars.LESSON_MODEL }}
           ELEVENLABS_LESSON_VOICE_ID: ${{ vars.ELEVENLABS_LESSON_VOICE_ID }}
           ELEVENLABS_LESSON_MODEL_ID: ${{ vars.ELEVENLABS_LESSON_MODEL_ID }}
-          # المستويات: نص Claude للثلاثة افتراضيًا؛ صوت ElevenLabs للمتوسط فقط ما لم يُغيَّر AUDIO_LEVELS
+          # المستويات الثلاثة نصًا وصوتًا (ElevenLabs فقط)؛ يمكن تقييدها بهذين المتغيرين
           LESSON_LEVELS: ${{ vars.LESSON_LEVELS }}
           AUDIO_LEVELS: ${{ vars.AUDIO_LEVELS }}
           MODE: ${{ github.event_name == 'schedule' && 'run' || inputs.mode }}

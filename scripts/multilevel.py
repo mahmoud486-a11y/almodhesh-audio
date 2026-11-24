@@ -9,7 +9,8 @@
 
 المتغيرات:
   LESSON_LEVELS  المستويات التي تُكتب نصوصها بـ Claude (الافتراضي: الثلاثة). المستوى غير المفعّل يأخذ نص المتوسط.
-  AUDIO_LEVELS   المستويات التي تُولّد تسجيلاتها بـ ElevenLabs (الافتراضي: intermediate فقط).
+  AUDIO_LEVELS   المستويات التي تُولّد تسجيلاتها بـ ElevenLabs (الافتراضي: الثلاثة).
+لا يُستخدم صوت المتصفح أبدًا: الدرس لا يُنشر حتى تكتمل كل تسجيلاته؛ وحتى ذلك يبقى آخر درس مكتمل منشورًا.
 """
 from __future__ import annotations
 
@@ -23,26 +24,29 @@ from zoneinfo import ZoneInfo
 
 import daily_lesson as dl
 from daily_lesson import (ARABIC, CATEGORIES, MAX_MAJOR_EVENTS, MENA_COUNTRIES, MENA_KEYWORDS, MIN_CATEGORIES,
-                          STORIES, WORDS, read_json, summary, tokens, write_json)
+                          WORDS, read_json, summary, tokens, write_json)
+
+STORIES = 4           # أربعة أخبار يوميًا بالمستويات الثلاثة
+MIN_SOURCES = 3       # تنوع المصادر: ثلاثة مصادر مختلفة على الأقل
 
 LEVEL_ORDER = ["beginner", "intermediate", "advanced"]
 DEFAULT_LEVEL = "intermediate"
 EXERCISES = 3
 LEVELS = {
     "beginner": {
-        "ar": "مبتدئ", "cefr": "A1–A2", "en_min": 30, "en_max": 95,
+        "ar": "مبتدئ", "cefr": "A1–A2", "en_min": 30, "en_max": 95, "audio_max": 550,
         "style": "CEFR A1–A2. ONE short sentence (8–15 words), present or past simple, the 1,500 most common English "
                  "words, no idioms, no passive voice. Vocabulary: concrete everyday words. Comprehension questions "
                  "are very simple (who / what / where) with short options.",
     },
     "intermediate": {
-        "ar": "متوسط", "cefr": "B1–B2", "en_min": 60, "en_max": 140,
+        "ar": "متوسط", "cefr": "B1–B2", "en_min": 60, "en_max": 140, "audio_max": 750,
         "style": "CEFR B1–B2. ONE natural sentence (14–24 words) that may use a relative clause, present perfect or "
                  "passive voice. Vocabulary: common news and work words. Comprehension questions check the main "
                  "idea and one detail.",
     },
     "advanced": {
-        "ar": "متقدم", "cefr": "C1–C2", "en_min": 90, "en_max": 230,
+        "ar": "متقدم", "cefr": "C1–C2", "en_min": 90, "en_max": 230, "audio_max": 950,
         "style": "CEFR C1–C2. One or two sophisticated sentences (22–38 words in total) in a professional news "
                  "register: complex clauses, precise and formal vocabulary, natural collocations. Vocabulary: "
                  "advanced and academic words. Comprehension questions test inference, cause and effect, or "
@@ -91,11 +95,11 @@ FACTS_SCHEMA = {
 
 FACTS_PROMPT = """You choose the daily news for "Almodhesh" (المدهش), a website where Arabic speakers learn American English from news.
 
-From the numbered news list, choose exactly 6 stories. Selection policy (mandatory):
+From the numbered news list, choose exactly 4 stories. Selection policy (mandatory):
 - Every story must be about the Middle East and North Africa (MENA): it must happen in, or directly concern, a MENA country. Countries elsewhere in Africa (for example Senegal, Nigeria, Kenya) are NOT MENA. Set "country" to that country, or "MENA region" for a story about several of them.
-- Cover at least 4 different categories from economy, technology, health, education, science, sport, culture and major event. Prefer positive, practical and human-interest news: business and jobs, innovation, health care, schools and universities, research, sports results, arts, heritage, travel and food.
+- Give each of the 4 stories a different category from economy, technology, health, education, science, sport, culture and major event. Prefer positive, practical and human-interest news: business and jobs, innovation, health care, schools and universities, research, sports results, arts, heritage, travel and food.
 - Use the category "major event" for wars, conflicts, attacks, elections, diplomacy and other political news. Include at most ONE such story, only if it is truly major, and keep it neutral without graphic details.
-- Avoid opinion pieces, rumors, crime stories and sensational news. Prefer different sources and different countries.
+- Avoid opinion pieces, rumors, crime stories and sensational news. Use at least 3 different sources and prefer different countries.
 
 For each story give:
 - "news_id": the number of the item.
@@ -103,7 +107,7 @@ For each story give:
 - "topic": a short Arabic title of 2–4 words.
 - "facts": 2 to 4 short factual statements in plain English, using only information stated in that item (who, what, where, when, numbers). Write them as neutral notes in your own words, not quotes. The first fact must name the MENA country, city or people. Never invent details.
 
-Also give "archive_title": the 6 topics as short Arabic categories joined with "، " and "و" before the last, e.g. "اقتصاد، صحة، تعليم، علوم، رياضة وثقافة".
+Also give "archive_title": the 4 topics as short Arabic categories joined with "، " and "و" before the last, e.g. "اقتصاد، صحة، تعليم ورياضة".
 """
 
 
@@ -146,8 +150,12 @@ def validate_facts(data: dict, items) -> list[str]:
         if not ARABIC.search(s.get("topic", "")):
             errors.append(f"story {n}: Arabic topic missing")
     cats = [s.get("category") for s in stories]
-    if len(set(cats)) < MIN_CATEGORIES:
-        errors.append(f"use at least {MIN_CATEGORIES} different categories (got {len(set(cats))})")
+    need = min(MIN_CATEGORIES, STORIES)
+    if len(set(cats)) < need:
+        errors.append(f"use at least {need} different categories (got {len(set(cats))})")
+    sources = {by_id[i].source_ar for i in ids if i in by_id}
+    if len(sources) < MIN_SOURCES:
+        errors.append(f"use at least {MIN_SOURCES} different sources (got {len(sources)}: {', '.join(sorted(sources))})")
     if cats.count("major event") > MAX_MAJOR_EVENTS:
         errors.append(f"at most {MAX_MAJOR_EVENTS} 'major event' story; replace the others with economy, technology, "
                       "health, education, science, sport or culture news")
@@ -188,14 +196,15 @@ LEVEL_SCHEMA = {
 
 LEVEL_PROMPT = """You write one level of the daily lesson for "Almodhesh" (المدهش), where Arabic speakers learn American English from news.
 
-You receive 6 numbered stories, each with a few facts. Write ONLY from these facts: do not add, change or invent any fact, number, name or date, so all levels stay factually identical. Write in your own words; do not reproduce any source wording.
+You receive 4 numbered stories, each with a few facts. Write ONLY from these facts: do not add, change or invent any fact, number, name or date, so all levels stay factually identical. Write in your own words; do not reproduce any source wording.
 
 Level: {level_name} ({cefr}). {style}
 
 Return:
-- "stories": exactly 6 items in the same order. "en": American English ({en_min}–{en_max} characters, American spelling, ending with a period) that names the MENA country, city or people. "ar": a natural and accurate Modern Standard Arabic translation.
-- "words": exactly 20 vocabulary words suited to this level. Each "en" is a single word copied exactly as it appears in your sentences (lowercase unless a proper noun); "ar" is its Arabic meaning in that sentence.
-- "translations": an Arabic gloss for EVERY distinct word in your 6 sentences ("word" lowercase as it appears without surrounding punctuation, keeping apostrophes and hyphens).
+- "stories": exactly 4 items in the same order. "en": American English ({en_min}–{en_max} characters, American spelling, ending with a period) that names the MENA country, city or people. "ar": a natural and accurate Modern Standard Arabic translation.
+- "words": exactly 20 vocabulary words suited to this level. Each "en" is a single word copied exactly as it appears in your texts (lowercase unless a proper noun); "ar" is its Arabic meaning in that sentence.
+- "translations": an Arabic gloss for EVERY distinct word in your 4 texts ("word" lowercase as it appears without surrounding punctuation, keeping apostrophes and hyphens).
+- Audio limit: the 4 English texts plus the 20 words must total at most {audio_max} characters.
 - "exercises": exactly 3 multiple-choice comprehension questions about these stories, suited to this level. "question" in English, "question_ar" its Arabic translation, "options": exactly 4 short distinct English options, "answer": the index (0–3) of the correct option.
 """
 
@@ -324,8 +333,8 @@ def prepare(day: datetime, model: str, daily_cap: int, text_levels: list[str], a
     # المتوسط أولًا: هو المستوى الافتراضي وبديل أي مستوى يفشل
     for level in sorted(text_levels, key=lambda l: l != DEFAULT_LEVEL):
         cfg = LEVELS[level]
-        system = LEVEL_PROMPT.format(level_name=level, **{k: cfg[k] for k in ("cefr", "style", "en_min", "en_max")})
-        budget = daily_cap if level in audio_levels else None
+        system = LEVEL_PROMPT.format(level_name=level, **{k: cfg[k] for k in ("cefr", "style", "en_min", "en_max", "audio_max")})
+        budget = cfg["audio_max"] if level in audio_levels else None
         data, cost = _ask(lambda fb: level_prompt(facts, fb), lambda d, lv=level, b=budget: validate_level(d, lv, known, b),
                           system, LEVEL_SCHEMA, model, key, level)
         total += cost
@@ -351,6 +360,7 @@ def prepare(day: datetime, model: str, daily_cap: int, text_levels: list[str], a
         "facts": [{"news_id": s["news_id"], "category": s["category"], "country": s["country"], "facts": s["facts"]}
                   for s in facts["stories"]],
         "levels": levels,
+        "pending_audio": True,  # لا يظهر في الموقع حتى تكتمل تسجيلات ElevenLabs
         "generated": {"by": "claude", "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")},
     }
     mirror_default(lesson)
@@ -391,8 +401,13 @@ def attach(lesson: dict, level: str | None, voice_id: str, model_id: str, manife
     view["audio"] = {"stories": s if any(s) else None, "words": w if any(w) else None}
 
 
-def generate_audio(daily_cap: int, audio_levels: list[str]) -> bool:
-    path = dl.latest_lesson_path()
+def audio_complete(lesson: dict) -> bool:
+    views = [lesson["levels"][l] for l in LEVEL_ORDER] if "levels" in lesson else [lesson]
+    return all((v.get("audio") or {}).get(k) and all(v["audio"][k]) for v in views for k in ("stories", "words"))
+
+
+def generate_audio(daily_cap: int, audio_levels: list[str], path: Path | None = None) -> bool:
+    path = path or dl.latest_lesson_path()
     lesson = read_json(path, None)
     voice_id = os.environ.get("ELEVENLABS_LESSON_VOICE_ID", "").strip() or dl.DEFAULT_LESSON_VOICE
     model_id = os.environ.get("ELEVENLABS_LESSON_MODEL_ID", "").strip() or dl.DEFAULT_TTS_MODEL
@@ -419,6 +434,10 @@ def generate_audio(daily_cap: int, audio_levels: list[str]) -> bool:
             attach(lesson, level, voice_id, model_id, manifest)
         if "levels" in lesson:
             mirror_default(lesson)
+            if audio_complete(lesson):
+                lesson.pop("pending_audio", None)  # اكتملت التسجيلات: يُنشر الدرس
+            else:
+                lesson["pending_audio"] = True
         write_json(path, lesson)
 
     if not jobs:
@@ -468,3 +487,14 @@ def generate_audio(daily_cap: int, audio_levels: list[str]) -> bool:
     summary(f"🔊 صوت درس {lesson['key']}: وُلّد {done}، فشل {failed}، ناقص {missing} "
             f"(استُخدم اليوم {usage.get(today, 0)} من {daily_cap} حرف)")
     return missing == 0
+
+
+def backfill(daily_cap: int) -> bool:
+    """تسجيل ElevenLabs لمرة واحدة للدروس القديمة التي ليس لها تسجيلات (ضمن الحد اليومي)."""
+    paths = sorted((p for p in dl.LESSONS_DIR.glob("*.json") if dl.build_site_data.KEY_RE.match(p.stem)), reverse=True)
+    todo = [p for p in paths if not audio_complete(read_json(p, {}))]
+    print(f"دروس تحتاج تسجيلات: {', '.join(p.stem for p in todo) or 'لا شيء'}")
+    ok = True
+    for p in todo:
+        ok = generate_audio(daily_cap, list(LEVEL_ORDER), p) and ok
+    return ok

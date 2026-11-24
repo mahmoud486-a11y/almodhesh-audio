@@ -38,6 +38,8 @@ def load_lessons(lessons_dir: Path | None = None) -> list[dict]:
         lesson = json.loads(path.read_text(encoding="utf-8"))
         if lesson.get("key") != path.stem:
             raise ValueError(f"{path.name}: key لا يطابق اسم الملف")
+        if lesson.get("pending_audio"):
+            continue  # درس لم تكتمل تسجيلاته بعد: لا يُنشر، ويبقى آخر درس مكتمل
         lessons.append(lesson)
     lessons.sort(key=lambda l: l["key"], reverse=True)  # الأحدث أولًا
     if not lessons:

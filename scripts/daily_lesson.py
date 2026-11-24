@@ -56,7 +56,7 @@ DEFAULT_LESSON_VOICE = "21m00Tcm4TlvDq8ikWAM"  # صوت أمريكي جاهز؛ 
 STORIES = 6
 WORDS = 20
 EN_MIN, EN_MAX = 40, 125
-DAILY_MAX_CHARS = 1000
+DAILY_MAX_CHARS = 2300  # 4 أخبار × 3 مستويات (550 + 750 + 950 حرفًا كحد أقصى)
 # الدروس من الأحد إلى الخميس؛ الجمعة والسبت يوما مراجعة واختبار أسبوعي (بتوقيت أوتاوا)، بلا درس ولا استهلاك
 REVIEW_WEEKDAYS = (4, 5)  # الجمعة، السبت (الاثنين = 0)
 MAX_AGE_DAYS = 4
@@ -588,7 +588,7 @@ def generate_audio(daily_cap: int = DAILY_MAX_CHARS) -> bool:
 # ---------------------------------------------------------------- التشغيل
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("command", choices=["news", "prepare", "audio", "build", "run"])
+    p.add_argument("command", choices=["news", "prepare", "audio", "build", "run", "backfill"])
     p.add_argument("--date", help="تاريخ الدرس YYYY-MM-DD (الافتراضي: اليوم بتوقيت أوتاوا)")
     p.add_argument("--daily-max-chars", type=int, default=DAILY_MAX_CHARS)
     args = p.parse_args(argv)
@@ -619,7 +619,11 @@ def main(argv=None) -> int:
 
     import multilevel as ml  # الدرس بثلاثة مستويات (مبتدئ، متوسط، متقدم)
     text_levels = ml.env_levels("LESSON_LEVELS", list(ml.LEVEL_ORDER))
-    audio_levels = ml.env_levels("AUDIO_LEVELS", [ml.DEFAULT_LEVEL])
+    audio_levels = ml.env_levels("AUDIO_LEVELS", list(ml.LEVEL_ORDER))
+    if args.command == "backfill":
+        ok = ml.backfill(args.daily_max_chars)
+        print(f"أحدث درس في الموقع: {build_site_data.build(LESSONS_DIR, SITE / 'lessons-data.js')}")
+        return 0 if ok else 1
     print(f"مستويات النص: {', '.join(text_levels)} | مستويات صوت ElevenLabs: {', '.join(audio_levels)}")
 
     ok = True

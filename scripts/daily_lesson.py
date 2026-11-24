@@ -56,7 +56,7 @@ DEFAULT_LESSON_VOICE = "21m00Tcm4TlvDq8ikWAM"  # صوت أمريكي جاهز؛ 
 STORIES = 6
 WORDS = 20
 EN_MIN, EN_MAX = 40, 125
-DAILY_MAX_CHARS = 1900  # 3 أخبار × 3 مستويات (500 + 600 + 800 حرفًا كحد أقصى)
+DAILY_MAX_CHARS = 3300  # 3 أخبار × 3 مستويات: الإنجليزية (حتى 1900) + الترجمة العربية المسموعة (نحو 1100–1400)
 # الدروس من الأحد إلى الخميس؛ الجمعة والسبت يوما مراجعة واختبار أسبوعي (بتوقيت أوتاوا)، بلا درس ولا استهلاك
 REVIEW_WEEKDAYS = (4, 5)  # الجمعة، السبت (الاثنين = 0)
 MAX_AGE_DAYS = 4
@@ -316,7 +316,8 @@ def news_prompt(items: list[NewsItem], budget: int, feedback: list[str]) -> str:
     return "\n".join(lines)
 
 
-def call_claude(prompt: str, model: str, system: str | None = None, schema: dict | None = None) -> tuple[dict, dict]:
+def call_claude(prompt: str, model: str, system: str | None = None, schema: dict | None = None,
+                effort: str = "medium") -> tuple[dict, dict]:
     import anthropic  # يُستورد هنا حتى تعمل الأوامر الأخرى دون المكتبة
 
     client = anthropic.Anthropic()  # يقرأ ANTHROPIC_API_KEY من البيئة
@@ -325,7 +326,7 @@ def call_claude(prompt: str, model: str, system: str | None = None, schema: dict
         max_tokens=16000,
         system=system or SYSTEM_PROMPT,
         messages=[{"role": "user", "content": prompt}],
-        output_config={"effort": "medium", "format": {"type": "json_schema", "schema": schema or LESSON_SCHEMA}},
+        output_config={"effort": effort, "format": {"type": "json_schema", "schema": schema or LESSON_SCHEMA}},
     )
     if model in FALLBACK_MODELS:
         # عند رفض نادر من مصنّفات الأمان يعيد الخادم المحاولة على نموذج بديل تلقائيًا

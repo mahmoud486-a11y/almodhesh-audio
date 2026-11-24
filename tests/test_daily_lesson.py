@@ -155,7 +155,8 @@ def ml_level_answer(level):
     for i, c in enumerate(ML_COUNTRIES):
         chunk = [ML_POOL[(i * n + k) % len(ML_POOL)] for k in range(n)]
         used += chunk
-        stories.append({"en": f"{c} {level} " + " ".join(chunk) + ".", "ar": f"جملة عربية {i + 1} للمستوى"})
+        lv_ar = {"beginner": "المبتدئ", "intermediate": "المتوسط", "advanced": "المتقدم"}[level]
+        stories.append({"en": f"{c} {level} " + " ".join(chunk) + ".", "ar": f"جملة عربية {i + 1} للمستوى {lv_ar}"})
     words = list(dict.fromkeys(used))[:20]
     gloss = [{"word": w, "ar": "ترجمة"} for w in dict.fromkeys(used + [c.lower() for c in ML_COUNTRIES] + [level])]
     exercises = [{"question": f"What happened in {c}?", "question_ar": "ماذا حدث؟",
@@ -208,8 +209,10 @@ class MultiLevelValidationTests(unittest.TestCase):
         facts["stories"].reverse()
         self.assertEqual(ml.validate_facts(facts, news_items()), [])  # أي ترتيب مقبول في الرد...
 
-        def fake(p, m, system=None, schema=None):
+        def fake(p, m, system=None, schema=None, effort="medium"):
             u = {"input_tokens": 1, "output_tokens": 1, "model": "claude-haiku-5-5"}
+            if schema is ml.REVIEW_SCHEMA:
+                return {"corrections": []}, u
             if schema is ml.FACTS_SCHEMA:
                 return facts, u
             return ml_level_answer(next(l for l in ml.LEVEL_ORDER if f"Level: {l} (" in system)), u
@@ -273,11 +276,17 @@ class PipelineTests(unittest.TestCase):
             code = dl.main(list(args) + ["--date", self.day])
         return code, out.getvalue()
 
-    def claude(self, bad_levels=(), bad_facts=False):
-        """Claude محاكى: يميّز طلب الحقائق من طلب كل مستوى، ويسجّل الطلبات."""
+    def claude(self, bad_levels=(), bad_facts=False, review=None):
+        """Claude محاكى: يميّز طلب الحقائق وطلب كل مستوى وطلب التدقيق، ويسجّل الطلبات."""
         usage = {"input_tokens": 4000, "output_tokens": 3000, "model": "claude-haiku-5-5"}
+        self.review_models = []
+        answers = list(review or [])
 
-        def fake(prompt, model, system=None, schema=None):
+        def fake(prompt, model, system=None, schema=None, effort="medium"):
+            if schema is ml.REVIEW_SCHEMA:
+                self.calls.append("review")
+                self.review_models.append((model, effort))
+                return (answers.pop(0) if answers else {"corrections": []}), {**usage, "model": model}
             if schema is ml.FACTS_SCHEMA:
                 self.calls.append("facts")
                 return ({"bad": 1} if bad_facts else ml_facts_answer()), usage
@@ -311,7 +320,7 @@ class PipelineTests(unittest.TestCase):
             code, out = self.run_cli("run", env={"ANTHROPIC_API_KEY": "a", "ELEVENLABS_API_KEY": "e"})
         self.assertEqual(code, 0, out)
         fetch.assert_called_once()  # الأخبار تُجلب مرة واحدة
-        self.assertEqual(self.calls, ["facts", "intermediate", "beginner", "advanced"])
+        self.assertEqual(self.calls, ["facts", "intermediate", "beginner", "advanced", "review"])
         lesson = json.loads(self.lesson_path.read_text(encoding="utf-8"))
         self.assertEqual(set(lesson["levels"]), set(ml.LEVEL_ORDER))
         for level in ml.LEVEL_ORDER:
@@ -334,13 +343,58 @@ class PipelineTests(unittest.TestCase):
         for level in ml.LEVEL_ORDER:
             audio = lesson["levels"][level]["audio"]
             self.assertEqual(len(audio["stories"]), 3)
-            self.assertTrue(all(audio["stories"]) and all(audio["words"]), level)  # لا شيء بصوت المتصفح
+            for k in ("stories", "words", "stories_ar"):
+                self.assertTrue(all(audio[k]), (level, k))  # كل تسجيل موجود؛ لا شيء بصوت المتصفح
+            self.assertTrue(all(p.endswith("-ar.mp3") for p in audio["stories_ar"]))
         used = sum(json.loads((self.tmp / "audio/usage.json").read_text()).values())
         self.assertLessEqual(used, dl.DAILY_MAX_CHARS)
-        reused = [p for l in ml.LEVEL_ORDER for p in lesson["levels"][l]["audio"]["words"] if f"/{self.day}/{l}/" not in p]
-        self.assertTrue(reused)  # كلمات مكررة بين المستويات أو مسجّلة سابقًا تعيد استخدام تسجيلها
-        self.assertEqual(len(self.spoken), 3 * (3 + 20) - len(reused))
-        self.assertIn(f'const lessonDate="{self.day}"', self.data("advanced"))
+        arabic = [t for t in self.spoken if dl.ARABIC.search(t)]
+        self.assertEqual(len(arabic), 9)  # 3 أخبار × 3 مستويات، كل ترجمة تُسجَّل مرة واحدة
+        self.assertEqual(len(self.spoken), len(set(self.spoken)))  # لا نص يُسجَّل مرتين
+        self.assertIn("const lessonArabicAudio=", self.data("advanced"))
+        self.assertIn("-ar.mp3", self.data("advanced").split("const lessonArabicAudio=")[1])
+
+    def test_arabic_review_uses_strongest_model_and_is_applied(self):
+        fixes = {"corrections": [
+            {"id": "s:beginner:0", "ar": "جملة عربية مصححة , وواضحة", "issue": "grammar"},
+            {"id": "w:advanced:0", "ar": "طلاب", "issue": "meaning"},
+            {"id": "g:intermediate:egypt", "ar": "مصر", "issue": "spelling"},
+            {"id": "topic:1", "ar": "عنوان مصحح", "issue": "style"},
+        ]}
+        code, out = self.full_run(review=[fixes])
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.review_models, [("claude-opus-5-5", "high")])
+        lesson = json.loads(self.lesson_path.read_text(encoding="utf-8"))
+        self.assertEqual(lesson["levels"]["beginner"]["stories"][0]["ar"], "جملة عربية مصححة، وواضحة")  # فاصلة عربية
+        self.assertEqual(lesson["levels"]["advanced"]["words"][0][1], "طلاب")
+        self.assertEqual(lesson["levels"]["intermediate"]["translations"]["egypt"], "مصر")
+        self.assertTrue(all(lesson["levels"][l]["stories"][1]["topic"] == "عنوان مصحح" for l in ml.LEVEL_ORDER))
+        self.assertEqual(lesson["review"]["corrections"], 4)
+        self.assertNotIn("pending_review", lesson)
+        # التسجيل العربي يُصنع من النص بعد التدقيق
+        self.assertIn("جملة عربية مصححة، وواضحة", self.spoken)
+
+    def test_review_rejects_changed_numbers(self):
+        items = {"s:beginner:0": {"en": "Saudi Arabia approved a $371bn budget.", "ar": "..."}}
+        bad = {"corrections": [{"id": "s:beginner:0", "ar": "وافقت السعودية على ميزانية بقيمة 317 مليار دولار.", "issue": "x"}]}
+        self.assertTrue(any("keep every number" in e for e in ml.validate_review(bad, items)))
+        good = {"corrections": [{"id": "s:beginner:0", "ar": "وافقت السعودية على ميزانية بقيمة ٣٧١ مليار دولار.", "issue": "x"}]}
+        self.assertEqual(ml.validate_review(good, items), [])
+
+    def test_failed_review_blocks_recording_and_publishing_then_resumes(self):
+        before = self.data("intermediate")
+        bad = {"corrections": [{"id": "nope", "ar": "x", "issue": "x"}]}
+        code, _ = self.full_run(review=[bad, bad, bad])
+        self.assertEqual(code, 1)
+        lesson = json.loads(self.lesson_path.read_text(encoding="utf-8"))
+        self.assertTrue(lesson["pending_review"])
+        self.assertEqual(self.spoken, [])  # لا تسجيل قبل اكتمال التدقيق
+        self.assertEqual(self.data("intermediate"), before)  # ولا نشر
+        self.calls.clear()
+        code, _ = self.full_run()
+        self.assertEqual(code, 0)
+        self.assertEqual(self.calls, ["review"])  # استكمال التدقيق فقط، دون إعادة كتابة الدرس
+        self.assertIn(f'const lessonDate="{self.day}"', self.data("intermediate"))
 
     def test_new_lessons_stay_readable_by_previous_code(self):
         self.full_run()
@@ -364,10 +418,10 @@ class PipelineTests(unittest.TestCase):
     def test_disabled_level_reuses_intermediate_text_and_audio(self):
         code, _ = self.full_run({"LESSON_LEVELS": "intermediate"})
         self.assertEqual(code, 0)
-        self.assertEqual(self.calls, ["facts", "intermediate"])
+        self.assertEqual(self.calls, ["facts", "intermediate", "review"])
         lesson = json.loads(self.lesson_path.read_text(encoding="utf-8"))
         self.assertEqual(lesson["levels"]["beginner"]["same_as"], "intermediate")
-        self.assertLessEqual(len(self.spoken), 23)  # لا تسجيل مكرر: المستويات المنسوخة تعيد استخدام تسجيلات المتوسط
+        self.assertLessEqual(len(self.spoken), 23 + 3)  # لا تسجيل مكرر: المستويات المنسوخة تعيد استخدام تسجيلات المتوسط (والعربية)
         self.assertEqual(lesson["levels"]["beginner"]["audio"], lesson["levels"]["intermediate"]["audio"])
 
     def test_failed_level_falls_back_without_losing_the_day(self):

@@ -62,7 +62,7 @@ def js(value) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
 
 
-def render(lessons: list[dict], translations: dict, level: str = DEFAULT_LEVEL) -> str:
+def render(lessons: list[dict], translations: dict, level: str = DEFAULT_LEVEL, level_file: bool = False) -> str:
     latest = lessons[0]["key"]
     lessons_obj = {}
     for l in lessons:
@@ -70,9 +70,11 @@ def render(lessons: list[dict], translations: dict, level: str = DEFAULT_LEVEL) 
         lessons_obj[l["key"]] = {"date": l["date"], "stories": v["stories"], "words": v["words"]}
         if v.get("exercises"):
             lessons_obj[l["key"]]["exercises"] = v["exercises"]
-    lesson_audio, word_audio = {}, {}
+    lesson_audio, word_audio, arabic_audio = {}, {}, {}
     for l in lessons:
         audio = view(l, level).get("audio") or {}
+        if "levels" in l and audio.get("stories_ar"):
+            arabic_audio[l["key"]] = audio["stories_ar"]
         if audio.get("stories"):
             lesson_audio[l["key"]] = audio["stories"]
         if audio.get("words"):
@@ -91,6 +93,7 @@ def render(lessons: list[dict], translations: dict, level: str = DEFAULT_LEVEL) 
         f"const lessonAudio={js(lesson_audio)};\n"
         f"const lessonWordAudio={js(word_audio)};\n"
         f"const archive={js(archive)};\n"
+        + (f"const lessonArabicAudio={js(arabic_audio)};\n" if level_file else "")
     )
 
 
@@ -101,7 +104,7 @@ def build(lessons_dir: Path | None = None, output: Path | None = None) -> str:
     lessons = load_lessons(lessons_dir)
     translations = merged_translations(lessons, lessons_dir / "_base-translations.json")
     for level in LEVELS:
-        output.with_name(f"lessons-data-{level}.js").write_text(render(lessons, translations, level), encoding="utf-8")
+        output.with_name(f"lessons-data-{level}.js").write_text(render(lessons, translations, level, True), encoding="utf-8")
     output.write_text(render(lessons, translations, DEFAULT_LEVEL), encoding="utf-8")
     return lessons[0]["key"]
 

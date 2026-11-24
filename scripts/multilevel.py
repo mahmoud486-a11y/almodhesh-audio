@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 import time
@@ -296,12 +297,138 @@ def build_level(data: dict, facts: dict, items, generated_by: str) -> dict:
             "audio": {"stories": None, "words": None}, "generated_by": generated_by}
 
 
-def _ask(prompt_fn, validate_fn, system, schema, model, key, label, attempts=3):
+# ---------------------------------------------------------------- الخطوة 3: التدقيق اللغوي العربي قبل النشر
+REVIEW_MODEL = "claude-opus-5-5"  # أقوى نموذج متاح للترجمة والتدقيق؛ يُغيَّر بالمتغير REVIEW_MODEL
+REVIEW_SCHEMA = {
+    "type": "object",
+    "properties": {"corrections": {"type": "array", "items": {
+        "type": "object",
+        "properties": {"id": {"type": "string"}, "ar": {"type": "string"}, "issue": {"type": "string"}},
+        "required": ["id", "ar", "issue"], "additionalProperties": False}}},
+    "required": ["corrections"],
+    "additionalProperties": False,
+}
+REVIEW_PROMPT = """You are a senior Arabic editor and English–Arabic translator reviewing a lesson for "Almodhesh" (المدهش), where Arabic speakers learn English from news, before it is published.
+
+Each item has an id, the English source (and sometimes the sentence it comes from) and the current Arabic. Review EVERY item and return a correction for each one that is not perfect:
+- Accurate: keeps the exact English meaning, facts, names and numbers; adds and omits nothing.
+- Natural, fluent and clear professional Modern Standard Arabic, as written by a careful news editor; never literal or awkward word-for-word renderings.
+- Grammatically correct: gender and number agreement (including duals), verb forms, case endings where written, prepositions, and word order.
+- Correct spelling: hamzas, taa marbuta / haa, alif maqsura / yaa, and standard spelling of names and places.
+- Arabic punctuation (، ؛ ؟) and no stray English punctuation.
+- Word items ("w:" and "g:"): give the precise Arabic meaning of the English word as used in its sentence (a short word or phrase, no explanations in brackets unless essential).
+- Question items ("q:"): a natural Arabic rendering of the English question.
+- Keep numbers as digits exactly as in the English. Keep proper names in their common Arabic spelling.
+
+Return "corrections" with only the items that need a change: "id", the full corrected Arabic in "ar", and a short English "issue". If everything is already perfect, return an empty list."""
+
+ARABIC_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
+
+
+def numbers_in(text: str) -> list[str]:
+    return re.findall(r"\d+(?:\.\d+)?", text.translate(ARABIC_DIGITS).replace(",", ""))
+
+
+def polish_arabic(text: str) -> str:
+    """تصحيحات آلية مضمونة: الفاصلة وعلامة الاستفهام العربيتان، والمسافات الزائدة."""
+    text = re.sub(r"(?<=[\u0600-\u06FF]) ?, ?(?=\S)", "، ", text)
+    text = re.sub(r"(?<=[\u0600-\u06FF]) ?\?", "؟", text)
+    text = re.sub(r"(?<=[\u0600-\u06FF]) ?; ?", "؛ ", text)
+    return re.sub(r"\s{2,}", " ", text).strip()
+
+
+def review_items(lesson: dict) -> dict:
+    items = {"archive": {"en": "Categories: politics, economy, health", "ar": lesson["archive_title"]}}
+    mid = lesson["levels"][DEFAULT_LEVEL]
+    for i, st in enumerate(mid["stories"]):
+        items[f"topic:{i}"] = {"en": "Short title for: " + st["en"], "ar": st["topic"]}
+    for lv in LEVEL_ORDER:
+        v = lesson["levels"][lv]
+        if v.get("same_as"):
+            continue
+        ctx = lambda word: next((st["en"] for st in v["stories"] if word.lower() in tokens(st["en"])), "")
+        for i, st in enumerate(v["stories"]):
+            items[f"s:{lv}:{i}"] = {"en": st["en"], "ar": st["ar"]}
+        for i, (en, ar) in enumerate(v["words"]):
+            items[f"w:{lv}:{i}"] = {"en": en, "sentence": ctx(en), "ar": ar}
+        for i, e in enumerate(v["exercises"]):
+            items[f"q:{lv}:{i}"] = {"en": e["question"], "ar": e["question_ar"]}
+        for word, ar in v["translations"].items():
+            items[f"g:{lv}:{word}"] = {"en": word, "sentence": ctx(word), "ar": ar}
+    return items
+
+
+def review_prompt(items: dict, feedback) -> str:
+    lines = ["Items:"] + [json.dumps({"id": k, **v}, ensure_ascii=False) for k, v in items.items()]
+    if feedback:
+        lines += ["", "Your previous answer was rejected. Fix these problems:"] + [f"- {f}" for f in feedback]
+    return "\n".join(lines)
+
+
+def validate_review(data: dict, items: dict) -> list[str]:
+    errors = []
+    for c in data.get("corrections", []):
+        cid, ar = c.get("id"), c.get("ar", "")
+        if cid not in items:
+            errors.append(f"unknown id {cid!r}")
+            continue
+        if not ARABIC.search(ar):
+            errors.append(f"{cid}: corrected text must be Arabic")
+        if cid.startswith("s:") and sorted(numbers_in(items[cid]["en"])) != sorted(numbers_in(ar)):
+            errors.append(f"{cid}: keep every number from the English exactly ({', '.join(numbers_in(items[cid]['en']))})")
+    return errors
+
+
+def apply_review(lesson: dict, corrections: list[dict]) -> None:
+    by_id = {c["id"]: polish_arabic(c["ar"]) for c in corrections}
+    if "archive" in by_id:
+        lesson["archive_title"] = by_id["archive"]
+    for lv in LEVEL_ORDER:
+        v = lesson["levels"][lv]
+        src = lesson["levels"][v["same_as"]] if v.get("same_as") else v
+        for i, st in enumerate(v["stories"]):
+            st["topic"] = by_id.get(f"topic:{i}", st["topic"])
+            st["ar"] = polish_arabic(by_id.get(f"s:{src is v and lv or v['same_as']}:{i}", st["ar"]))
+        key_lv = lv if src is v else v["same_as"]
+        for i, w in enumerate(v["words"]):
+            new = by_id.get(f"w:{key_lv}:{i}")
+            if new:
+                if v["translations"].get(w[0].lower()) == w[1]:
+                    v["translations"][w[0].lower()] = new
+                w[1] = new
+        for i, e in enumerate(v["exercises"]):
+            e["question_ar"] = polish_arabic(by_id.get(f"q:{key_lv}:{i}", e["question_ar"]))
+        for word in list(v["translations"]):
+            v["translations"][word] = by_id.get(f"g:{key_lv}:{word}", v["translations"][word])
+
+
+def run_review(lesson: dict, path: Path) -> bool:
+    model = os.environ.get("REVIEW_MODEL", "").strip() or REVIEW_MODEL
+    items = review_items(lesson)
+    data, cost = _ask(lambda fb: review_prompt(items, fb), lambda d: validate_review(d, items),
+                      REVIEW_PROMPT, REVIEW_SCHEMA, model, lesson["key"], "review", effort="high")
+    if data is None:
+        lesson["pending_review"] = True
+        write_json(path, lesson)
+        summary(f"❌ تعذر إكمال التدقيق اللغوي (تكلفة ${cost:.4f}). لا يُسجَّل الدرس ولا يُنشر؛ يبقى آخر درس صالح.")
+        return False
+    apply_review(lesson, data["corrections"])
+    lesson.pop("pending_review", None)
+    lesson["review"] = {"model": model, "corrections": len(data["corrections"]),
+                        "issues": [{"id": c["id"], "issue": c["issue"]} for c in data["corrections"]],
+                        "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+    mirror_default(lesson)
+    write_json(path, lesson)
+    summary(f"🔍 التدقيق اللغوي ({model}): {len(data['corrections'])} تصحيحًا من {len(items)} نصًا عربيًا — تكلفة ${cost:.4f}")
+    return True
+
+
+def _ask(prompt_fn, validate_fn, system, schema, model, key, label, attempts=3, effort="medium"):
     feedback, cost = [], 0.0
     for attempt in range(1, attempts + 1):
         print(f"{label}: طلب من {model} (محاولة {attempt}) ...")
         try:
-            data, usage = dl.call_claude(prompt_fn(feedback), model, system=system, schema=schema)
+            data, usage = dl.call_claude(prompt_fn(feedback), model, system=system, schema=schema, effort=effort)
         except Exception as e:  # noqa: BLE001
             print(f"  فشل الطلب: {dl.tts.sanitize(e)[:300]}")
             feedback = []
@@ -319,8 +446,12 @@ def prepare(day: datetime, model: str, daily_cap: int, text_levels: list[str], a
     key = day.strftime("%Y-%m-%d")
     path = dl.LESSONS_DIR / f"{key}.json"
     if path.exists():
+        lesson = read_json(path, None)
+        if lesson.get("pending_review"):
+            print(f"درس {key} محفوظ لكن تدقيقه اللغوي لم يكتمل؛ استكمال التدقيق فقط.")
+            return lesson if run_review(lesson, path) else None
         print(f"درس {key} موجود مسبقًا؛ لا حاجة لإعداده (لا تكلفة).")
-        return read_json(path, None)
+        return lesson
     print("جلب الأخبار:")
     items = dl.fetch_news()
     if len(items) < 12:
@@ -367,13 +498,14 @@ def prepare(day: datetime, model: str, daily_cap: int, text_levels: list[str], a
                   for s in facts["stories"]],
         "levels": levels,
         "pending_audio": True,  # لا يظهر في الموقع حتى تكتمل تسجيلات ElevenLabs
+        "pending_review": True,  # ولا يُسجَّل حتى يكتمل التدقيق اللغوي
         "generated": {"by": "claude", "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")},
     }
     mirror_default(lesson)
     write_json(path, lesson)
     made = ", ".join(f"{LEVELS[l]['ar']}" + ("" if l in results else f" (=نص {LEVELS[base]['ar']})") for l in LEVEL_ORDER)
     summary(f"✅ أُعدّ درس {key} بالمستويات: {made} — تكلفة تقديرية ${total:.4f}")
-    return lesson
+    return lesson if run_review(lesson, path) else None
 
 
 # ---------------------------------------------------------------- الصوت
@@ -385,6 +517,19 @@ def level_paths(lesson: dict, level: str | None) -> tuple[list[str], list[str]]:
             [f"{prefix}/words/word-{i:02d}.mp3" for i in range(1, len(view["words"]) + 1)])
 
 
+def arabic_paths(lesson: dict, level: str) -> list[str]:
+    """تسجيلات الترجمة العربية لكل خبر (للاستماع ثنائي اللغة)."""
+    return [f"audio/{lesson['key']}/{level}/news-{i}-ar.mp3" for i in range(1, len(lesson["levels"][level]["stories"]) + 1)]
+
+
+def voices() -> tuple[str, str, str]:
+    """(الصوت الإنجليزي، الصوت العربي، النموذج). الصوت العربي يُحدَّد بـ ELEVENLABS_ARABIC_VOICE_ID."""
+    en = os.environ.get("ELEVENLABS_LESSON_VOICE_ID", "").strip() or dl.DEFAULT_LESSON_VOICE
+    ar = os.environ.get("ELEVENLABS_ARABIC_VOICE_ID", "").strip() or en
+    model = os.environ.get("ELEVENLABS_LESSON_MODEL_ID", "").strip() or dl.DEFAULT_TTS_MODEL
+    return en, ar, model
+
+
 def digest_of(text: str, voice_id: str, model_id: str) -> str:
     return hashlib.sha256(f"{voice_id}|{model_id}|{text}".encode()).hexdigest()
 
@@ -393,30 +538,36 @@ def existing_by_digest(manifest: dict) -> dict:
     return {v["sha256"]: rel for rel, v in manifest.items() if (dl.SITE / rel).exists()}
 
 
-def attach(lesson: dict, level: str | None, voice_id: str, model_id: str, manifest: dict) -> None:
+def attach(lesson: dict, level: str | None, voice_id: str, model_id: str, manifest: dict, ar_voice: str | None = None) -> None:
     """يربط كل جملة وكلمة بتسجيلها إن وُجد — بما فيها تسجيل لنص مطابق في درس أو مستوى آخر."""
     view = lesson["levels"][level] if level else lesson
     known = existing_by_digest(manifest)
     s_paths, w_paths = level_paths(lesson, level)
-    def resolve(own, text):
-        if (dl.SITE / own).exists():
+    def resolve(own, text, voice=voice_id):
+        if (dl.SITE / own).exists() and manifest.get(own, {}).get("sha256") in (None, digest_of(text, voice, model_id)):
             return own
-        return known.get(digest_of(text, voice_id, model_id))
+        return known.get(digest_of(text, voice, model_id))
     s = [resolve(p, st["en"]) for p, st in zip(s_paths, view["stories"])]
     w = [resolve(p, wd[0]) for p, wd in zip(w_paths, view["words"])]
     view["audio"] = {"stories": s if any(s) else None, "words": w if any(w) else None}
+    if level:  # الترجمة العربية مسموعة (الدروس الجديدة فقط)
+        a = [resolve(p, st["ar"], ar_voice or voice_id) for p, st in zip(arabic_paths(lesson, level), view["stories"])]
+        view["audio"]["stories_ar"] = a if any(a) else None
 
 
 def audio_complete(lesson: dict) -> bool:
     views = [lesson["levels"][l] for l in LEVEL_ORDER] if "levels" in lesson else [lesson]
-    return all((v.get("audio") or {}).get(k) and all(v["audio"][k]) for v in views for k in ("stories", "words"))
+    keys = ("stories", "words", "stories_ar") if "levels" in lesson else ("stories", "words")
+    return all((v.get("audio") or {}).get(k) and all(v["audio"][k]) for v in views for k in keys)
 
 
 def generate_audio(daily_cap: int, audio_levels: list[str], path: Path | None = None) -> bool:
     path = path or dl.latest_lesson_path()
     lesson = read_json(path, None)
-    voice_id = os.environ.get("ELEVENLABS_LESSON_VOICE_ID", "").strip() or dl.DEFAULT_LESSON_VOICE
-    model_id = os.environ.get("ELEVENLABS_LESSON_MODEL_ID", "").strip() or dl.DEFAULT_TTS_MODEL
+    if lesson.get("pending_review"):
+        summary(f"⏸ درس {lesson['key']} لم يكتمل تدقيقه اللغوي بعد؛ لا يُسجَّل ولا يُنشر حتى يكتمل.")
+        return False
+    voice_id, ar_voice, model_id = voices()
     manifest = read_json(dl.AUDIO_MANIFEST, {})
     targets = [l for l in LEVEL_ORDER if l in audio_levels] if "levels" in lesson else [None]
     targets.sort(key=lambda l: l != DEFAULT_LEVEL)  # المتوسط أولًا
@@ -427,17 +578,20 @@ def generate_audio(daily_cap: int, audio_levels: list[str], path: Path | None = 
     for level in targets:
         view = lesson["levels"][level] if level else lesson
         s_paths, w_paths = level_paths(lesson, level)
-        for rel, text in list(zip(s_paths, [s["en"] for s in view["stories"]])) + \
-                         list(zip(w_paths, [w[0] for w in view["words"]])):
-            d = digest_of(text, voice_id, model_id)
-            if (dl.SITE / rel).exists() or d in known or d in planned:
+        wanted = [(rel, text, voice_id) for rel, text in list(zip(s_paths, [s["en"] for s in view["stories"]])) +
+                  list(zip(w_paths, [w[0] for w in view["words"]]))]
+        if level:  # الترجمة العربية لكل خبر بصوت عربي
+            wanted += [(rel, s["ar"], ar_voice) for rel, s in zip(arabic_paths(lesson, level), view["stories"])]
+        for rel, text, voice in wanted:
+            d = digest_of(text, voice, model_id)
+            if ((dl.SITE / rel).exists() and manifest.get(rel, {}).get("sha256") in (None, d)) or d in known or d in planned:
                 continue
             planned.add(d)
-            jobs.append((rel, text, d))
+            jobs.append((rel, text, d, voice))
 
     def finish():
         for level in ([l for l in LEVEL_ORDER] if "levels" in lesson else [None]):
-            attach(lesson, level, voice_id, model_id, manifest)
+            attach(lesson, level, voice_id, model_id, manifest, ar_voice)
         if "levels" in lesson:
             mirror_default(lesson)
             if audio_complete(lesson):
@@ -462,7 +616,7 @@ def generate_audio(daily_cap: int, audio_levels: list[str], path: Path | None = 
     print(f"التسجيلات الناقصة: {len(jobs)} | المتاح اليوم: {available} من {daily_cap} | سيُولَّد: {len(selected)} ({total} حرف)")
     api_key = os.environ.get("ELEVENLABS_API_KEY", "").strip()
     if not selected or not api_key:
-        summary("⚠️ لا يتسع الحد اليومي أو لا يوجد مفتاح ElevenLabs؛ الجمل الناقصة تعمل بصوت المتصفح.")
+        summary("⚠️ لا يتسع الحد اليومي أو لا يوجد مفتاح ElevenLabs؛ يبقى الدرس غير منشور حتى تكتمل تسجيلاته.")
         finish()
         return False
     remaining = dl.tts.remaining_characters(api_key)
@@ -472,9 +626,9 @@ def generate_audio(daily_cap: int, audio_levels: list[str], path: Path | None = 
         return False
 
     done = failed = 0
-    for rel, text, d in selected:
+    for rel, text, d, voice in selected:
         try:
-            audio = dl.tts.synthesize(text, api_key, voice_id, model_id, "mp3_44100_128")
+            audio = dl.tts.synthesize(text, api_key, voice, model_id, "mp3_44100_128")
         except RuntimeError as e:
             failed += 1
             print(f"  فشل {rel}: {dl.tts.sanitize(e)}")
@@ -483,7 +637,7 @@ def generate_audio(daily_cap: int, audio_levels: list[str], path: Path | None = 
             continue
         (dl.SITE / rel).parent.mkdir(parents=True, exist_ok=True)
         (dl.SITE / rel).write_bytes(audio)
-        manifest[rel] = {"sha256": d, "chars": len(text), "voice_id": voice_id, "model_id": model_id}
+        manifest[rel] = {"sha256": d, "chars": len(text), "voice_id": voice, "model_id": model_id}
         usage[today] = int(usage.get(today, 0)) + len(text)
         write_json(dl.AUDIO_MANIFEST, manifest)
         dl.tts.save_usage(usage, dl.USAGE_PATH)

@@ -1,0 +1,107 @@
+name: Generate Arabic audio (ElevenLabs)
+
+on:
+  # تشغيل يدوي للاختبار من تبويب Actions
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "تجربة فقط بدون الاتصال بـ ElevenLabs (لا يستهلك رصيدًا)"
+        type: boolean
+        default: true
+      file:
+        description: "اسم ملف نص واحد داخل texts/ (اتركه فارغًا لكل الملفات الجديدة)"
+        type: string
+        default: ""
+      limit:
+        description: "أقصى عدد ملفات في هذه التشغيلة (0 = بلا حد)"
+        type: string
+        default: "1"
+      max_chars:
+        description: "أقصى مجموع أحرف في هذه التشغيلة (0 = بلا حد)"
+        type: string
+        default: "500"
+      force:
+        description: "إعادة التوليد حتى لو كان الملف مولَّدًا مسبقًا (يستهلك رصيدًا)"
+        type: boolean
+        default: false
+      commit:
+        description: "حفظ ملفات MP3 الناتجة في المستودع (وإلا تُرفع كـ Artifact فقط)"
+        type: boolean
+        default: false
+
+  # ⚠️ الجدولة اليومية معطّلة عمدًا ولن تُفعَّل إلا بعد الموافقة.
+  # لتفعيلها: أزل علامة # من السطرين التاليين (الوقت بتوقيت UTC).
+  # schedule:
+  #   - cron: "17 3 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: generate-audio
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run tests (offline, no API calls)
+        run: python -m unittest discover -s tests -v
+
+      - name: Generate audio
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID: ${{ vars.ELEVENLABS_VOICE_ID }}
+          ELEVENLABS_MODEL_ID: ${{ vars.ELEVENLABS_MODEL_ID }}
+          # القيم تُمرَّر عبر env وليس داخل السكربت مباشرة، لتجنب حقن الأوامر
+          IS_SCHEDULE: ${{ github.event_name == 'schedule' }}
+          IN_DRY_RUN: ${{ inputs.dry_run }}
+          IN_FILE: ${{ inputs.file }}
+          IN_LIMIT: ${{ inputs.limit }}
+          IN_MAX_CHARS: ${{ inputs.max_chars }}
+          IN_FORCE: ${{ inputs.force }}
+          # حدود التشغيل المجدول (عند تفعيله لاحقًا)
+          SCHEDULE_LIMIT: "10"
+          SCHEDULE_MAX_CHARS: "10000"
+        run: |
+          args=()
+          if [ "$IS_SCHEDULE" = "true" ]; then
+            args+=(--limit "$SCHEDULE_LIMIT" --max-chars "$SCHEDULE_MAX_CHARS")
+          else
+            [ "$IN_DRY_RUN" = "true" ] && args+=(--dry-run)
+            [ "$IN_FORCE" = "true" ] && args+=(--force)
+            [ -n "$IN_FILE" ] && args+=(--file "$IN_FILE")
+            args+=(--limit "${IN_LIMIT:-1}" --max-chars "${IN_MAX_CHARS:-500}")
+          fi
+          python scripts/generate_audio.py "${args[@]}"
+
+      - name: Upload MP3 files as artifact
+        if: ${{ !inputs.dry_run }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: audio-${{ github.run_number }}
+          path: |
+            audio/*.mp3
+            audio/manifest.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Commit generated audio
+        if: ${{ github.event_name == 'schedule' || (!inputs.dry_run && inputs.commit) }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add audio/
+          if git diff --cached --quiet; then
+            echo "لا توجد ملفات جديدة للحفظ."
+          else
+            git commit -m "Add generated audio [skip ci]"
+            git push
+          fi

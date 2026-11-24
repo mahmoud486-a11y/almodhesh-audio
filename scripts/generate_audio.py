@@ -1,0 +1,279 @@
+#!/usr/bin/env python3
+"""تحويل النصوص العربية في مجلد texts/ إلى ملفات MP3 عبر ElevenLabs.
+
+- يقرأ مفتاح API من متغير البيئة ELEVENLABS_API_KEY فقط (لا يُكتب في الكود).
+- يتخطى أي نص سبق توليده ولم يتغير (بالاعتماد على بصمة SHA-256 في audio/manifest.json)
+  حتى لا يُستهلك الرصيد مرتين.
+- وضع --dry-run لا يتصل بـ ElevenLabs إطلاقًا، ويعرض فقط ما سيتم توليده وعدد الأحرف.
+- حدود أمان: --limit (عدد الملفات) و --max-chars (إجمالي الأحرف في التشغيلة الواحدة).
+
+يعتمد على مكتبة بايثون القياسية فقط.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import sys
+import time
+import urllib.error
+import urllib.request
+from dataclasses import dataclass
+from pathlib import Path
+
+API_BASE = "https://api.elevenlabs.io/v1"
+DEFAULT_MODEL = "eleven_multilingual_v2"  # يدعم العربية
+DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"  # صوت جاهز من مكتبة ElevenLabs؛ غيّره عبر ELEVENLABS_VOICE_ID
+DEFAULT_OUTPUT_FORMAT = "mp3_44100_128"
+MAX_CHUNK_CHARS = 2500  # أقل بكثير من حد الطلب الواحد للنموذج، لثبات الجودة
+
+ROOT = Path(__file__).resolve().parent.parent
+TEXTS_DIR = ROOT / "texts"
+AUDIO_DIR = ROOT / "audio"
+MANIFEST_PATH = AUDIO_DIR / "manifest.json"
+
+
+@dataclass
+class Job:
+    source: Path
+    output: Path
+    text: str
+    digest: str
+
+    @property
+    def chars(self) -> int:
+        return len(self.text)
+
+
+def read_text(path: Path) -> str:
+    text = path.read_text(encoding="utf-8-sig")
+    # توحيد المسافات مع الحفاظ على فواصل الفقرات
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
+def sha256(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def load_manifest(path: Path = MANIFEST_PATH) -> dict:
+    if path.exists():
+        return json.loads(path.read_text(encoding="utf-8"))
+    return {}
+
+
+def save_manifest(manifest: dict, path: Path = MANIFEST_PATH) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def split_text(text: str, max_chars: int = MAX_CHUNK_CHARS) -> list[str]:
+    """يقسم النص الطويل إلى أجزاء عند حدود الفقرات/الجمل العربية."""
+    if len(text) <= max_chars:
+        return [text]
+    # حدود الجمل: . ! ? ؟ ؛ والسطر الجديد
+    sentences = re.split(r"(?<=[.!?؟؛\n])\s+", text)
+    chunks: list[str] = []
+    current = ""
+    for sentence in sentences:
+        while len(sentence) > max_chars:  # جملة واحدة أطول من الحد: قصّ عند مسافة
+            cut = sentence.rfind(" ", 0, max_chars)
+            cut = cut if cut > 0 else max_chars
+            if current:
+                chunks.append(current.strip())
+                current = ""
+            chunks.append(sentence[:cut].strip())
+            sentence = sentence[cut:].strip()
+        if current and len(current) + 1 + len(sentence) > max_chars:
+            chunks.append(current.strip())
+            current = sentence
+        else:
+            current = f"{current} {sentence}" if current else sentence
+    if current.strip():
+        chunks.append(current.strip())
+    return [c for c in chunks if c]
+
+
+def collect_jobs(
+    texts_dir: Path,
+    audio_dir: Path,
+    manifest: dict,
+    only: str | None = None,
+    force: bool = False,
+) -> list[Job]:
+    jobs: list[Job] = []
+    for src in sorted(texts_dir.glob("*.txt")):
+        if only and src.name != only and src.stem != only:
+            continue
+        text = read_text(src)
+        if not text:
+            continue
+        digest = sha256(text)
+        out = audio_dir / f"{src.stem}.mp3"
+        entry = manifest.get(src.name, {})
+        if not force and out.exists() and entry.get("sha256") == digest:
+            continue  # مولَّد مسبقًا ولم يتغير
+        jobs.append(Job(src, out, text, digest))
+    return jobs
+
+
+def api_request(
+    method: str,
+    path: str,
+    api_key: str,
+    body: dict | None = None,
+    query: str = "",
+    timeout: int = 180,
+) -> bytes:
+    url = f"{API_BASE}{path}{query}"
+    data = json.dumps(body).encode("utf-8") if body is not None else None
+    headers = {"xi-api-key": api_key, "Accept": "*/*"}
+    if data is not None:
+        headers["Content-Type"] = "application/json"
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    last_err: Exception | None = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return resp.read()
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode("utf-8", "replace")[:500]
+            # 429/5xx قابلة لإعادة المحاولة؛ غيرها (401، 402، 422...) خطأ نهائي
+            if e.code == 429 or e.code >= 500:
+                last_err = RuntimeError(f"HTTP {e.code}: {detail}")
+                time.sleep(2 ** attempt * 3)
+                continue
+            raise RuntimeError(f"HTTP {e.code}: {detail}") from None
+        except urllib.error.URLError as e:
+            last_err = e
+            time.sleep(2 ** attempt * 3)
+    raise RuntimeError(f"فشل الطلب بعد عدة محاولات: {last_err}")
+
+
+def remaining_characters(api_key: str) -> int | None:
+    """يقرأ الرصيد المتبقي (لا يستهلك رصيدًا). يعيد None إن لم تسمح صلاحيات المفتاح بذلك."""
+    try:
+        info = json.loads(api_request("GET", "/user/subscription", api_key, timeout=30))
+        return int(info["character_limit"]) - int(info["character_count"])
+    except Exception as e:  # noqa: BLE001
+        print(f"تنبيه: تعذر قراءة الرصيد المتبقي ({e}). سيُتابَع دون التحقق.")
+        return None
+
+
+def synthesize(text: str, api_key: str, voice_id: str, model_id: str, output_format: str) -> bytes:
+    chunks = split_text(text)
+    audio = bytearray()
+    for i, chunk in enumerate(chunks):
+        body = {
+            "text": chunk,
+            "model_id": model_id,
+            "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
+        }
+        # سياق الأجزاء المجاورة لتحسين اتصال النطق (لا يُحتسب ضمن الأحرف المولّدة)
+        if i > 0:
+            body["previous_text"] = chunks[i - 1][-300:]
+        if i < len(chunks) - 1:
+            body["next_text"] = chunks[i + 1][:300]
+        audio += api_request(
+            "POST",
+            f"/text-to-speech/{voice_id}",
+            api_key,
+            body=body,
+            query=f"?output_format={output_format}",
+        )
+    return bytes(audio)
+
+
+def main(argv: list[str] | None = None) -> int:
+    p = argparse.ArgumentParser(description="تحويل النصوص العربية إلى MP3 عبر ElevenLabs")
+    p.add_argument("--dry-run", action="store_true", help="عرض ما سيُولَّد دون الاتصال بـ ElevenLabs")
+    p.add_argument("--limit", type=int, default=0, help="أقصى عدد ملفات في التشغيلة (0 = بلا حد)")
+    p.add_argument("--max-chars", type=int, default=0, help="أقصى مجموع أحرف في التشغيلة (0 = بلا حد)")
+    p.add_argument("--file", default=None, help="توليد ملف واحد فقط (الاسم مع .txt أو بدونه)")
+    p.add_argument("--force", action="store_true", help="إعادة التوليد حتى لو لم يتغير النص")
+    p.add_argument("--texts-dir", type=Path, default=TEXTS_DIR)
+    p.add_argument("--audio-dir", type=Path, default=AUDIO_DIR)
+    args = p.parse_args(argv)
+
+    manifest_path = args.audio_dir / "manifest.json"
+    manifest = load_manifest(manifest_path)
+    jobs = collect_jobs(args.texts_dir, args.audio_dir, manifest, args.file, args.force)
+
+    if args.file and not jobs:
+        print(f"لا يوجد شيء لتوليده للملف '{args.file}' (غير موجود أو مولَّد مسبقًا).")
+    if args.limit > 0:
+        jobs = jobs[: args.limit]
+    if args.max_chars > 0:
+        selected, total = [], 0
+        for job in jobs:
+            if total + job.chars > args.max_chars:
+                print(f"تخطي {job.source.name} ({job.chars} حرف): يتجاوز حد --max-chars={args.max_chars}")
+                continue
+            selected.append(job)
+            total += job.chars
+        jobs = selected
+
+    total_chars = sum(j.chars for j in jobs)
+    print(f"الملفات المطلوب توليدها: {len(jobs)} | مجموع الأحرف (تقدير الرصيد): {total_chars}")
+    for job in jobs:
+        print(f"  - {job.source.name} -> {job.output.name} ({job.chars} حرف، {len(split_text(job.text))} جزء)")
+
+    if not jobs:
+        print("لا يوجد عمل جديد. لم يُستهلك أي رصيد.")
+        return 0
+    if args.dry_run:
+        print("وضع التجربة (dry-run): لم يتم الاتصال بـ ElevenLabs ولم يُستهلك أي رصيد.")
+        return 0
+
+    api_key = os.environ.get("ELEVENLABS_API_KEY", "").strip()
+    if not api_key:
+        print("خطأ: متغير البيئة ELEVENLABS_API_KEY غير مضبوط.", file=sys.stderr)
+        return 2
+    voice_id = os.environ.get("ELEVENLABS_VOICE_ID", "").strip() or DEFAULT_VOICE_ID
+    model_id = os.environ.get("ELEVENLABS_MODEL_ID", "").strip() or DEFAULT_MODEL
+    output_format = os.environ.get("ELEVENLABS_OUTPUT_FORMAT", "").strip() or DEFAULT_OUTPUT_FORMAT
+
+    remaining = remaining_characters(api_key)
+    if remaining is not None:
+        print(f"الرصيد المتبقي: {remaining} حرف")
+        if remaining < total_chars:
+            print("خطأ: الرصيد غير كافٍ لهذه التشغيلة. أُلغيت دون استهلاك.", file=sys.stderr)
+            return 3
+
+    args.audio_dir.mkdir(parents=True, exist_ok=True)
+    failures = 0
+    for job in jobs:
+        print(f"توليد {job.output.name} ...")
+        try:
+            audio = synthesize(job.text, api_key, voice_id, model_id, output_format)
+        except RuntimeError as e:
+            failures += 1
+            print(f"  فشل: {e}", file=sys.stderr)
+            if "HTTP 401" in str(e) or "quota_exceeded" in str(e):
+                print("  إيقاف بقية الملفات (مفتاح غير صالح أو نفاد الرصيد).", file=sys.stderr)
+                break
+            continue
+        job.output.write_bytes(audio)
+        manifest[job.source.name] = {
+            "sha256": job.digest,
+            "output": job.output.name,
+            "chars": job.chars,
+            "voice_id": voice_id,
+            "model_id": model_id,
+            "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        }
+        save_manifest(manifest, manifest_path)  # حفظ بعد كل ملف حتى لا يضيع ما تم
+        print(f"  تم: {job.output} ({len(audio) // 1024} KB)")
+
+    print(f"انتهى: {len(jobs) - failures} نجح، {failures} فشل.")
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

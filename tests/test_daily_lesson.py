@@ -164,6 +164,20 @@ class PipelineTests(unittest.TestCase):
         usage = {"input_tokens": 5000, "output_tokens": 4000, "model": "claude-opus-5-5", "request_id": "r"}
         return mock.patch.object(dl, "call_claude", side_effect=[(a, usage) for a in answers])
 
+    def test_friday_and_saturday_are_review_days(self):
+        before = (self.tmp / "site/lessons-data.js").read_text(encoding="utf-8")
+        env = {"ANTHROPIC_API_KEY": "a", "ELEVENLABS_API_KEY": "e"}
+        for day in ("2026-11-27", "2026-11-28"):  # الجمعة والسبت
+            with mock.patch.object(dl, "fetch_news") as fetch, mock.patch.object(dl, "call_claude") as claude, \
+                 mock.patch.object(dl.tts, "synthesize") as synth, mock.patch.dict(os.environ, env, clear=True), \
+                 redirect_stdout(io.StringIO()) as out:
+                code = dl.main(["run", "--date", day])
+            self.assertEqual(code, 0)
+            self.assertIn("يوم مراجعة", out.getvalue())
+            fetch.assert_not_called(); claude.assert_not_called(); synth.assert_not_called()
+            self.assertFalse((self.tmp / f"site/lessons/{day}.json").exists())
+        self.assertEqual((self.tmp / "site/lessons-data.js").read_text(encoding="utf-8"), before)
+
     def test_no_key_changes_nothing(self):
         before = (self.tmp / "site/lessons-data.js").read_text(encoding="utf-8")
         with mock.patch.object(dl, "fetch_news") as fetch:

@@ -57,6 +57,8 @@ STORIES = 6
 WORDS = 20
 EN_MIN, EN_MAX = 40, 125
 DAILY_MAX_CHARS = 1000
+# الدروس من الأحد إلى الخميس؛ الجمعة والسبت يوما مراجعة واختبار أسبوعي (بتوقيت أوتاوا)، بلا درس ولا استهلاك
+REVIEW_WEEKDAYS = (4, 5)  # الجمعة، السبت (الاثنين = 0)
 MAX_AGE_DAYS = 4
 
 WEEKDAYS_AR = ["الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"]
@@ -604,6 +606,10 @@ def main(argv=None) -> int:
         return 0 if len(items) >= 12 else 1
     if args.command == "build":
         print(f"أحدث درس: {build_site_data.build(LESSONS_DIR, SITE / 'lessons-data.js')}")
+        return 0
+
+    if args.command in ("prepare", "run") and day.weekday() in REVIEW_WEEKDAYS:
+        summary(f"📚 {WEEKDAYS_AR[day.weekday()]} يوم مراجعة واختبار أسبوعي: لا يُعدّ درس جديد ولا يُستهلك أي رصيد.")
         return 0
 
     today_exists = (LESSONS_DIR / f"{day:%Y-%m-%d}.json").exists()

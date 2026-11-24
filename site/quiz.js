@@ -169,8 +169,12 @@
 
   // عند فتح درس من الأرشيف يُبنى اختبار ذلك الدرس
   const originalLoadLesson = loadLesson;
-  loadLesson = function (key) { originalLoadLesson(key); state = null; renderIntro(); };
+  // الجمعة والسبت يوما مراجعة: يظهر اختبار الأسبوع بدل اختبار اليوم
+  const reviewDay = [5, 6].includes(new Date().getDay());
+  loadLesson = function (key) { originalLoadLesson(key); state = null; if (!reviewDay) renderIntro(); };
+  // إكمال اختبار الأسبوع يُحسب في السلسلة 🔥 أيضًا
+  window.addEventListener("almodhesh:quiz-done", () => { markToday(); renderStreak(); });
 
   renderStreak();
-  renderIntro();
+  if (!reviewDay) renderIntro();
 })();

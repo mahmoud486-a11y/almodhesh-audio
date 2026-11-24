@@ -1,4 +1,4 @@
-// اختبار الأسبوع: عشرة أسئلة من دروس آخر خمسة أيام.
+// اختبار الأسبوع: عشرة أسئلة من دروس الأيام الخمسة (الأحد–الخميس)، يُفتح يومي الجمعة والسبت.
 // يُبنى من بيانات الدروس الموجودة في الصفحة (لا اتصال بأي خدمة، ولا تكلفة).
 // يعتمد على متغيرات app.js العامة: lessons, lessonDate, lessonAudio, utter, stopPlayback, activeHumanAudio.
 (function () {
@@ -83,7 +83,7 @@
     const best = store.get(bestKey, null);
     const range = keys.length > 1 ? `${label(keys[keys.length - 1])} – ${label(keys[0])}` : label(keys[0]);
     section().innerHTML = `
-      <div class="section-title"><p class="eyebrow">مراجعة آخر ${DAYS} أيام</p><h2>اختبار الأسبوع</h2></div>
+      <div class="section-title"><p class="eyebrow">يوم المراجعة · دروس الأسبوع</p><h2>اختبار الأسبوع</h2></div>
       <article class="quiz-card">
         <p class="quiz-lead">عشرة أسئلة من دروس الأسبوع (${keys.length} ${keys.length > 2 && keys.length < 11 ? "دروس" : "درس"}، ${range}): معانٍ، استماع، وإكمال جمل.</p>
         ${best !== null ? `<p class="quiz-best">أفضل نتيجة لك هذا الأسبوع: <b>${best}/${QUESTIONS}</b></p>` : ""}
@@ -120,6 +120,7 @@
   }
   function finish() {
     store.set(bestKey, Math.max(state.score, store.get(bestKey, 0)));
+    window.dispatchEvent(new Event("almodhesh:quiz-done"));
     const pct = state.score / state.qs.length;
     const msg = pct === 1 ? "ممتاز! أتقنت كلمات الأسبوع 🎉" : pct >= 0.7 ? "أحسنت! مراجعتك قوية." : "راجع دروس الأرشيف ثم أعد المحاولة.";
     section().innerHTML = `
@@ -131,5 +132,14 @@
     section().querySelector(".quiz-start").onclick = start;
   }
 
-  if (keys.length) renderIntro();
+  // يُفتح يومي الجمعة والسبت فقط؛ وفي بقية الأيام بطاقة صغيرة تذكّر بموعده
+  const reviewDay = [5, 6].includes(new Date().getDay());
+  function renderLocked() {
+    section().innerHTML = `
+      <div class="section-title"><p class="eyebrow">مراجعة نهاية الأسبوع</p><h2>اختبار الأسبوع</h2></div>
+      <article class="quiz-card">
+        <p class="quiz-lead">🔒 يُفتح يومي <b>الجمعة والسبت</b>: عشرة أسئلة تراجع دروس الأحد إلى الخميس.</p>
+      </article>`;
+  }
+  if (keys.length) reviewDay ? renderIntro() : renderLocked();
 })();

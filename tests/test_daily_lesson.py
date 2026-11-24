@@ -177,6 +177,12 @@ class MultiLevelValidationTests(unittest.TestCase):
         beg = ml_level_answer("beginner")
         self.assertTrue(any("English must be 90-230" in e for e in ml.validate_level(beg, "advanced", {}, None)))
 
+    def test_function_words_are_rejected(self):
+        bad = ml_level_answer("beginner")
+        bad["stories"][0]["en"] = bad["stories"][0]["en"].replace("Egypt beginner", "Egypt as beginner")
+        bad["words"][0] = {"en": "as", "ar": "بينما"}
+        self.assertTrue(any("'as' is a function word" in e for e in ml.validate_level(bad, "beginner", {}, None)))
+
     def test_exercises_are_checked(self):
         bad = ml_level_answer("intermediate")
         bad["exercises"][0]["options"] = ["A", "A", "B", "C"]

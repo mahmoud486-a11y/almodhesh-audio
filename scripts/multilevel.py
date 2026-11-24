@@ -28,6 +28,11 @@ from daily_lesson import (ARABIC, MENA_COUNTRIES, MENA_KEYWORDS,
 
 STORIES = 3           # ثلاثة أخبار يوميًا بالمستويات الثلاثة
 CATEGORIES = ["politics", "economy", "health"]  # خبر سياسي، وخبر اقتصادي، وخبر صحي — بهذا الترتيب
+# كلمات وظيفية لا تصلح مفردات للتعلّم (أدوات، حروف جر، ضمائر، أفعال مساعدة)
+FUNCTION_WORDS = set("""a an the and or but so if as at by in on of to for from with into onto over under about after
+before than then that this these those there here it its he she they we you i me him her them us his their our your
+my is are was were be been being am do does did has have had will would can could shall should may might must not no
+yes very more most much many some any all each both other such own same just also too only up down out off again""".split())
 MIN_SOURCES = 2       # تنوع المصادر: مصدران مختلفان على الأقل (ويُفضَّل ثلاثة)
 
 LEVEL_ORDER = ["beginner", "intermediate", "advanced"]
@@ -100,6 +105,7 @@ From the numbered news list, choose exactly 3 stories. Selection policy (mandato
 - Every story must be about the Middle East and North Africa (MENA): it must happen in, or directly concern, a MENA country. Countries elsewhere in Africa (for example Senegal, Nigeria, Kenya) are NOT MENA. Set "country" to that country, or "MENA region" for a story about several of them.
 - Choose exactly one story for each category: "politics" (government decisions, elections, diplomacy, agreements, public policy), "economy" (business, trade, jobs, energy, markets, investment) and "health" (health care, medicine, public health, hospitals, research).
 - For the politics story prefer diplomacy, agreements and policy decisions over fighting; keep it neutral, factual and free of graphic details.
+- The health story must be mainly about health (patients, diseases, medicine, hospitals, public health), not a general plan that only mentions health.
 - Avoid opinion pieces, rumors, crime stories and sensational news. Prefer a different source and a different country for each story (at least 2 different sources).
 
 For each story give:
@@ -199,7 +205,7 @@ Level: {level_name} ({cefr}). {style}
 
 Return:
 - "stories": exactly 3 items in the same order. "en": American English ({en_min}–{en_max} characters, American spelling, ending with a period) that names the MENA country, city or people. "ar": a natural and accurate Modern Standard Arabic translation.
-- "words": exactly 20 vocabulary words suited to this level. Each "en" is a single word copied exactly as it appears in your texts (lowercase unless a proper noun); "ar" is its Arabic meaning in that sentence.
+- "words": exactly 20 useful vocabulary words suited to this level (nouns, verbs, adjectives or adverbs). Never choose articles, prepositions, pronouns, conjunctions, auxiliary verbs or personal names. Each "en" is a single word copied exactly as it appears in your texts (lowercase unless a proper noun); "ar" is its Arabic meaning in that sentence.
 - "translations": an Arabic gloss for EVERY distinct word in your 3 texts ("word" lowercase as it appears without surrounding punctuation, keeping apostrophes and hyphens).
 - Audio limit: the 3 English texts plus the 20 words must total at most {audio_max} characters.
 - "exercises": exactly 3 multiple-choice comprehension questions about these stories, suited to this level. "question" in English, "question_ar" its Arabic translation, "options": exactly 4 short distinct English options, "answer": the index (0–3) of the correct option.
@@ -240,6 +246,8 @@ def validate_level(data: dict, level: str, known: dict, budget: int | None) -> l
     for w in words:
         if w.get("en", "").strip().lower() not in sentence_tokens:
             errors.append(f"word '{w.get('en')}' does not appear in the sentences")
+        if w.get("en", "").strip().lower() in FUNCTION_WORDS:
+            errors.append(f"word '{w.get('en')}' is a function word; choose a useful noun, verb, adjective or adverb")
         if not ARABIC.search(w.get("ar", "")):
             errors.append(f"word '{w.get('en')}' has no Arabic meaning")
     glossary = {t.get("word", "").strip().lower() for t in data.get("translations", []) if ARABIC.search(t.get("ar", ""))}

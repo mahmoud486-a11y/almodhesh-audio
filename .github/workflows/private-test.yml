@@ -6,9 +6,15 @@ name: Private test lesson (upgrade preview)
 # - النتيجة تُرفع كملف مراجعة (artifact) يُحذف تلقائيًا بعد 7 أيام.
 on:
   workflow_dispatch:
+    inputs:
+      continue_run_id:
+        description: "رقم تشغيلة تجريبية سابقة لإكمال تسجيلاتها الناقصة فقط (اتركه فارغًا لدرس جديد)"
+        type: string
+        default: ""
 
 permissions:
   contents: read
+  actions: read   # لقراءة ملف المراجعة من تشغيلة سابقة عند الإكمال
 
 concurrency:
   group: elevenlabs
@@ -35,7 +41,26 @@ jobs:
           pip install -q -r requirements.txt
           python -m unittest discover -s tests
 
+      - name: Restore the previous preview (continue mode)
+        if: ${{ inputs.continue_run_id != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: private-test-lesson
+          run-id: ${{ inputs.continue_run_id }}
+          github-token: ${{ github.token }}
+          path: .
+
+      - name: Record only the missing audio of the previous preview (continue mode)
+        if: ${{ inputs.continue_run_id != '' }}
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_LESSON_VOICE_ID: ${{ vars.ELEVENLABS_LESSON_VOICE_ID }}
+          ELEVENLABS_LESSON_MODEL_ID: ${{ vars.ELEVENLABS_LESSON_MODEL_ID }}
+        # حد مؤقت لهذه النسخة التجريبية فقط (سجل الاستهلاك الحقيقي للموقع لا يتأثر)
+        run: python scripts/daily_lesson.py audio --daily-max-chars 2300
+
       - name: Pick a test date (after the latest lesson, not Friday/Saturday)
+        if: ${{ inputs.continue_run_id == '' }}
         id: day
         run: |
           python - <<'PY' >> "$GITHUB_OUTPUT"
@@ -48,6 +73,7 @@ jobs:
           PY
 
       - name: Generate one real lesson (3 stories x 3 levels, ElevenLabs)
+        if: ${{ inputs.continue_run_id == '' }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}

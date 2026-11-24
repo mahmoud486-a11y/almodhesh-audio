@@ -202,10 +202,10 @@ index 6caad07..815945c 100644
      return 0 if ok else 1
 diff --git a/scripts/multilevel.py b/scripts/multilevel.py
 new file mode 100644
-index 0000000..b458f0d
+index 0000000..65a7b34
 --- /dev/null
 +++ b/scripts/multilevel.py
-@@ -0,0 +1,498 @@
+@@ -0,0 +1,506 @@
 +"""درس المدهش متعدد المستويات: الخبر نفسه بثلاثة مستويات (مبتدئ، متوسط، متقدم).
 +
 +الخطوات (كل خطوة مرة واحدة في اليوم):
@@ -236,6 +236,11 @@ index 0000000..b458f0d
 +
 +STORIES = 3           # ثلاثة أخبار يوميًا بالمستويات الثلاثة
 +CATEGORIES = ["politics", "economy", "health"]  # خبر سياسي، وخبر اقتصادي، وخبر صحي — بهذا الترتيب
++# كلمات وظيفية لا تصلح مفردات للتعلّم (أدوات، حروف جر، ضمائر، أفعال مساعدة)
++FUNCTION_WORDS = set("""a an the and or but so if as at by in on of to for from with into onto over under about after
++before than then that this these those there here it its he she they we you i me him her them us his their our your
++my is are was were be been being am do does did has have had will would can could shall should may might must not no
++yes very more most much many some any all each both other such own same just also too only up down out off again""".split())
 +MIN_SOURCES = 2       # تنوع المصادر: مصدران مختلفان على الأقل (ويُفضَّل ثلاثة)
 +
 +LEVEL_ORDER = ["beginner", "intermediate", "advanced"]
@@ -308,6 +313,7 @@ index 0000000..b458f0d
 +- Every story must be about the Middle East and North Africa (MENA): it must happen in, or directly concern, a MENA country. Countries elsewhere in Africa (for example Senegal, Nigeria, Kenya) are NOT MENA. Set "country" to that country, or "MENA region" for a story about several of them.
 +- Choose exactly one story for each category: "politics" (government decisions, elections, diplomacy, agreements, public policy), "economy" (business, trade, jobs, energy, markets, investment) and "health" (health care, medicine, public health, hospitals, research).
 +- For the politics story prefer diplomacy, agreements and policy decisions over fighting; keep it neutral, factual and free of graphic details.
++- The health story must be mainly about health (patients, diseases, medicine, hospitals, public health), not a general plan that only mentions health.
 +- Avoid opinion pieces, rumors, crime stories and sensational news. Prefer a different source and a different country for each story (at least 2 different sources).
 +
 +For each story give:
@@ -407,7 +413,7 @@ index 0000000..b458f0d
 +
 +Return:
 +- "stories": exactly 3 items in the same order. "en": American English ({en_min}–{en_max} characters, American spelling, ending with a period) that names the MENA country, city or people. "ar": a natural and accurate Modern Standard Arabic translation.
-+- "words": exactly 20 vocabulary words suited to this level. Each "en" is a single word copied exactly as it appears in your texts (lowercase unless a proper noun); "ar" is its Arabic meaning in that sentence.
++- "words": exactly 20 useful vocabulary words suited to this level (nouns, verbs, adjectives or adverbs). Never choose articles, prepositions, pronouns, conjunctions, auxiliary verbs or personal names. Each "en" is a single word copied exactly as it appears in your texts (lowercase unless a proper noun); "ar" is its Arabic meaning in that sentence.
 +- "translations": an Arabic gloss for EVERY distinct word in your 3 texts ("word" lowercase as it appears without surrounding punctuation, keeping apostrophes and hyphens).
 +- Audio limit: the 3 English texts plus the 20 words must total at most {audio_max} characters.
 +- "exercises": exactly 3 multiple-choice comprehension questions about these stories, suited to this level. "question" in English, "question_ar" its Arabic translation, "options": exactly 4 short distinct English options, "answer": the index (0–3) of the correct option.
@@ -448,6 +454,8 @@ index 0000000..b458f0d
 +    for w in words:
 +        if w.get("en", "").strip().lower() not in sentence_tokens:
 +            errors.append(f"word '{w.get('en')}' does not appear in the sentences")
++        if w.get("en", "").strip().lower() in FUNCTION_WORDS:
++            errors.append(f"word '{w.get('en')}' is a function word; choose a useful noun, verb, adjective or adverb")
 +        if not ARABIC.search(w.get("ar", "")):
 +            errors.append(f"word '{w.get('en')}' has no Arabic meaning")
 +    glossary = {t.get("word", "").strip().lower() for t in data.get("translations", []) if ARABIC.search(t.get("ar", ""))}
@@ -1012,7 +1020,7 @@ index c9d4ea5..31a7a1c 100644
  
  self.addEventListener("install", e => {
 diff --git a/tests/test_daily_lesson.py b/tests/test_daily_lesson.py
-index 6f6cf02..e44ed6c 100644
+index 6f6cf02..b787a16 100644
 --- a/tests/test_daily_lesson.py
 +++ b/tests/test_daily_lesson.py
 @@ -22,7 +22,8 @@ REAL_LESSON = json.loads((ROOT / "site/lessons/2026-11-21.json").read_text(encod
@@ -1025,7 +1033,7 @@ index 6f6cf02..e44ed6c 100644
                          url=f"https://example.org/news/{i}", published=(now - timedelta(hours=i)).isoformat())
              for i in range(1, n + 1)]
  
-@@ -129,13 +130,117 @@ class ValidationTests(unittest.TestCase):
+@@ -129,13 +130,123 @@ class ValidationTests(unittest.TestCase):
          self.assertEqual(lesson["date"], "الأربعاء، 25 نوفمبر 2026")
  
  
@@ -1075,6 +1083,12 @@ index 6f6cf02..e44ed6c 100644
 +        self.assertTrue(any("English must be 30-130" in e for e in errs))
 +        beg = ml_level_answer("beginner")
 +        self.assertTrue(any("English must be 90-230" in e for e in ml.validate_level(beg, "advanced", {}, None)))
++
++    def test_function_words_are_rejected(self):
++        bad = ml_level_answer("beginner")
++        bad["stories"][0]["en"] = bad["stories"][0]["en"].replace("Egypt beginner", "Egypt as beginner")
++        bad["words"][0] = {"en": "as", "ar": "بينما"}
++        self.assertTrue(any("'as' is a function word" in e for e in ml.validate_level(bad, "beginner", {}, None)))
 +
 +    def test_exercises_are_checked(self):
 +        bad = ml_level_answer("intermediate")
@@ -1144,7 +1158,7 @@ index 6f6cf02..e44ed6c 100644
          self.patches = [
              mock.patch.object(dl, "SITE", site),
              mock.patch.object(dl, "LESSONS_DIR", site / "lessons"),
-@@ -143,11 +248,13 @@ class PipelineTests(unittest.TestCase):
+@@ -143,11 +254,13 @@ class PipelineTests(unittest.TestCase):
              mock.patch.object(dl, "AUDIO_MANIFEST", site / "audio" / "manifest.json"),
              mock.patch.object(dl, "USAGE_PATH", self.tmp / "audio" / "usage.json"),
              mock.patch.object(dl, "AI_USAGE_PATH", self.tmp / "logs" / "ai-usage.json"),
@@ -1158,7 +1172,7 @@ index 6f6cf02..e44ed6c 100644
  
      def tearDown(self):
          for p in self.patches:
-@@ -160,105 +267,181 @@ class PipelineTests(unittest.TestCase):
+@@ -160,105 +273,181 @@ class PipelineTests(unittest.TestCase):
              code = dl.main(list(args) + ["--date", self.day])
          return code, out.getvalue()
  

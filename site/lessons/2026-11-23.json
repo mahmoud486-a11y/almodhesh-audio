@@ -1,0 +1,243 @@
+{
+ "key": "2026-11-23",
+ "date": "الاثنين، 23 نوفمبر 2026",
+ "archive_date": "23 نوفمبر 2026",
+ "archive_title": "علوم، فضاء، رياضة، اقتصاد، دفاع وبيئة",
+ "stories": [
+  {
+   "topic": "عنكبوت يحمل اسم كولبير",
+   "en": "A tiny California spider named after Stephen Colbert has a genome roughly 50 percent larger than a human's.",
+   "ar": "يملك عنكبوت صغير من كاليفورنيا سُمّي تيمنًا بستيفن كولبير جينومًا أكبر بنحو 50 في المئة من جينوم الإنسان.",
+   "source": "ساينس ديلي · 22 نوفمبر 2026",
+   "url": "https://www.sciencedaily.com/releases/2026/11/261122060343.htm"
+  },
+  {
+   "topic": "مفاعل نووي على القمر",
+   "en": "NASA is seeking industry partners to develop the first nuclear reactor for the Moon.",
+   "ar": "تبحث ناسا عن شركاء من القطاع الصناعي لتطوير أول مفاعل نووي للقمر.",
+   "source": "ناسا · 23 نوفمبر 2026",
+   "url": "https://www.nasa.gov/directorates/rtmd/nasa-seeks-partners-to-design-first-nuclear-reactor-for-the-moon/"
+  },
+  {
+   "topic": "أول قائدة لفريق",
+   "en": "Brianne Jenner was named the first captain in Hamilton Havoc history.",
+   "ar": "عُيّنت بريانه جينر أول قائدة في تاريخ فريق هاميلتون هافوك.",
+   "source": "سي بي سي · 23 نوفمبر 2026",
+   "url": "https://www.cbc.ca/news/canada/hamilton/brianne-jenner-inaugural-captain-hamilton-havoc-pwhl-9.7432819?cmp=rss"
+  },
+  {
+   "topic": "قفزة في قيمة إنفيديا",
+   "en": "Nvidia's value climbed by almost one trillion dollars after Jensen Huang returned as CEO.",
+   "ar": "ارتفعت قيمة إنفيديا بما يقارب تريليون دولار بعد عودة جنسن هوانغ رئيسًا تنفيذيًا.",
+   "source": "بي بي سي · 23 نوفمبر 2026",
+   "url": "https://www.bbc.co.uk/news/articles/cq62pn6j42jko?at_medium=RSS&at_campaign=rss"
+  },
+  {
+   "topic": "دعم برامج الكاديت",
+   "en": "Canada's Defence Department will add money to its cadet and junior ranger programs.",
+   "ar": "ستضيف وزارة الدفاع الكندية أموالًا إلى برامج الكاديت وبرامج المرشدين الصغار.",
+   "source": "سي بي سي · 23 نوفمبر 2026",
+   "url": "https://www.cbc.ca/news/politics/dnd-cadet-program-top-up-9.7432950?cmp=rss"
+  },
+  {
+   "topic": "قمة المناخ بلا اتفاق",
+   "en": "Climate talks at COP31 ended with no deal after running two days longer than expected.",
+   "ar": "انتهت محادثات المناخ في مؤتمر COP31 دون اتفاق بعد أن استمرت يومين أطول من المتوقع.",
+   "source": "إن بي آر · 23 نوفمبر 2026",
+   "url": "https://www.npr.org/2026/11/23/g-s1-155021/up-first-newsletter-midterms-house-ai-stocks-poland-nato-cop31"
+  }
+ ],
+ "words": [
+  [
+   "tiny",
+   "صغير"
+  ],
+  [
+   "spider",
+   "عنكبوت"
+  ],
+  [
+   "genome",
+   "جينوم"
+  ],
+  [
+   "larger",
+   "أكبر"
+  ],
+  [
+   "seeking",
+   "تبحث عن"
+  ],
+  [
+   "partners",
+   "شركاء"
+  ],
+  [
+   "develop",
+   "يطوّر"
+  ],
+  [
+   "reactor",
+   "مفاعل"
+  ],
+  [
+   "nuclear",
+   "نووي"
+  ],
+  [
+   "captain",
+   "قائدة"
+  ],
+  [
+   "history",
+   "تاريخ"
+  ],
+  [
+   "value",
+   "قيمة"
+  ],
+  [
+   "climbed",
+   "ارتفعت"
+  ],
+  [
+   "trillion",
+   "تريليون"
+  ],
+  [
+   "returned",
+   "عودة"
+  ],
+  [
+   "defence",
+   "الدفاع"
+  ],
+  [
+   "department",
+   "وزارة"
+  ],
+  [
+   "cadet",
+   "الكاديت (متدرب عسكري)"
+  ],
+  [
+   "ended",
+   "انتهت"
+  ],
+  [
+   "deal",
+   "اتفاق"
+  ]
+ ],
+ "translations": {
+  "a": "أداة نكرة (لا تُترجم)",
+  "tiny": "صغير",
+  "california": "كاليفورنيا",
+  "spider": "عنكبوت",
+  "named": "سُمّي",
+  "after": "تيمنًا بـ / بعد",
+  "stephen": "ستيفن",
+  "colbert": "كولبير",
+  "has": "يملك",
+  "genome": "جينوم",
+  "roughly": "نحو",
+  "percent": "في المئة",
+  "larger": "أكبر",
+  "than": "من",
+  "human's": "الإنسان",
+  "nasa": "ناسا",
+  "is": "أداة المضارع (تبحث)",
+  "seeking": "تبحث عن",
+  "industry": "الصناعة",
+  "partners": "شركاء",
+  "to": "ل / إلى",
+  "develop": "يطوّر",
+  "the": "أل التعريف (لا تُترجم)",
+  "first": "أول",
+  "nuclear": "نووي",
+  "reactor": "مفاعل",
+  "for": "لـ",
+  "moon": "القمر",
+  "brianne": "بريانه",
+  "jenner": "جينر",
+  "was": "أداة الماضي (عُيّنت)",
+  "captain": "قائدة",
+  "in": "في",
+  "hamilton": "هاميلتون",
+  "havoc": "هافوك",
+  "history": "تاريخ",
+  "nvidia's": "لإنفيديا",
+  "value": "قيمة",
+  "climbed": "ارتفعت",
+  "by": "بمقدار",
+  "almost": "ما يقارب",
+  "one": "واحد",
+  "trillion": "تريليون",
+  "dollars": "دولار",
+  "jensen": "جنسن",
+  "huang": "هوانغ",
+  "returned": "عودة",
+  "as": "بصفة",
+  "ceo": "الرئيس التنفيذي",
+  "canada's": "الكندية",
+  "defence": "الدفاع",
+  "department": "وزارة",
+  "will": "سوف",
+  "add": "يضيف",
+  "money": "أموال",
+  "its": "خاصتها",
+  "cadet": "الكاديت (متدرب عسكري)",
+  "and": "و",
+  "junior": "الصغار",
+  "ranger": "مرشد",
+  "programs": "برامج",
+  "climate": "المناخ",
+  "talks": "محادثات",
+  "at": "في",
+  "ended": "انتهت",
+  "with": "مع",
+  "no": "لا",
+  "deal": "اتفاق",
+  "running": "استمرت",
+  "two": "يومين",
+  "days": "أيام",
+  "longer": "أطول",
+  "expected": "المتوقع"
+ },
+ "audio": {
+  "stories": [
+   "audio/2026-11-23/news-1.mp3",
+   "audio/2026-11-23/news-2.mp3",
+   "audio/2026-11-23/news-3.mp3",
+   "audio/2026-11-23/news-4.mp3",
+   "audio/2026-11-23/news-5.mp3",
+   "audio/2026-11-23/news-6.mp3"
+  ],
+  "words": [
+   "audio/2026-11-23/words/word-01.mp3",
+   "audio/2026-11-23/words/word-02.mp3",
+   "audio/2026-11-23/words/word-03.mp3",
+   "audio/2026-11-23/words/word-04.mp3",
+   "audio/2026-11-23/words/word-05.mp3",
+   "audio/2026-11-23/words/word-06.mp3",
+   "audio/2026-11-23/words/word-07.mp3",
+   "audio/2026-11-23/words/word-08.mp3",
+   "audio/2026-11-23/words/word-09.mp3",
+   "audio/2026-11-23/words/word-10.mp3",
+   "audio/2026-11-23/words/word-11.mp3",
+   "audio/2026-11-23/words/word-12.mp3",
+   "audio/2026-11-23/words/word-13.mp3",
+   "audio/2026-11-23/words/word-14.mp3",
+   "audio/2026-11-23/words/word-15.mp3",
+   "audio/2026-11-23/words/word-16.mp3",
+   "audio/2026-11-23/words/word-17.mp3",
+   "audio/2026-11-23/words/word-18.mp3",
+   "audio/2026-11-23/words/word-19.mp3",
+   "audio/2026-11-23/words/word-20.mp3"
+  ]
+ },
+ "generated": {
+  "by": "claude",
+  "at": "2026-11-24T03:29:32Z"
+ }
+}

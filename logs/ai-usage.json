@@ -1,0 +1,10 @@
+[
+ {
+  "date": "2026-11-23",
+  "attempt": 1,
+  "input_tokens": 11724,
+  "output_tokens": 10287,
+  "model": "claude-haiku-5-5",
+  "est_cost_usd": 0.00632
+ }
+]

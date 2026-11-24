@@ -1,0 +1,158 @@
+{
+ "audio/2026-11-23/news-1.mp3": {
+  "sha256": "5dd8c29f95989a71b02b939ccc38233bc9e1c8392f7353506d29d8daf4d1d8c1",
+  "chars": 107,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/news-2.mp3": {
+  "sha256": "cf500c2093965af4a37f3cd94ba2c6d760043af1ed960a3dbe7858a7d40735a8",
+  "chars": 84,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/news-3.mp3": {
+  "sha256": "af95eb5ad0962f60e1c4ec3ed74a57ee48eb4081a3914d79418581b41d7cc67e",
+  "chars": 69,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/news-4.mp3": {
+  "sha256": "f352bac7ab70ae6b8bc3f768bb2848fb8a2c4003f87ef3a4112864a421f88ea0",
+  "chars": 89,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/news-5.mp3": {
+  "sha256": "b9be0a3bcf2e551f2322da300c8f4363e31afeeabdce83a12131058ff501b1e6",
+  "chars": 83,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/news-6.mp3": {
+  "sha256": "c07395e4553f240a0935125aea784a2461d57dcc08d13c8610abec8cc69773ff",
+  "chars": 86,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-01.mp3": {
+  "sha256": "3bebe7481aa1b143e261af8b66d59ae533cd8fb328a805ed7d0ec4aceb9ac860",
+  "chars": 4,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-02.mp3": {
+  "sha256": "b26fec023b62083d248ecad7799b8296f067c23070ec6ebba5267a41b7c63d36",
+  "chars": 6,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-03.mp3": {
+  "sha256": "fae26045ba5b7f246a88fc3c249692b1bbb8fa6c10f9171a38980512a12cd93d",
+  "chars": 6,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-04.mp3": {
+  "sha256": "09c3158eadc791debce09fbb5b42fbcf846fbcadf7a48f01fa61e31031071345",
+  "chars": 6,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-05.mp3": {
+  "sha256": "c3e4d0c083bdcabe70070946f7614932d6097e3a048ddb72bdd8fecc53ed99a5",
+  "chars": 7,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-06.mp3": {
+  "sha256": "48c33b6f75b002a7fb76d87adaac7cce3e61c78bdbec482bcf9f2ecacc15dfcb",
+  "chars": 8,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-07.mp3": {
+  "sha256": "b42ca1d4f39cfb7440655639f5873741022243826820819cc9b9d90beeb16392",
+  "chars": 7,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-08.mp3": {
+  "sha256": "2f590f9e3b3e9a6570f60d7deb211492d9309378ee89ca9c79fb2829caf28442",
+  "chars": 7,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-09.mp3": {
+  "sha256": "633af77ff2373993d272fff9451c49533f6e85824d393b8813871322b94934c3",
+  "chars": 7,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-10.mp3": {
+  "sha256": "68768b89e6ef3235aa16d0f9ae3142a39c2372d47ec531301242bcec50668076",
+  "chars": 7,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-11.mp3": {
+  "sha256": "9fc665520ab55b5b008716fa69d4bdb37576a905900622263e877f35b6569e79",
+  "chars": 7,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-12.mp3": {
+  "sha256": "ee9e8f9544c8542303e99f09e830324e84507d81a56ebad059dcc7eb51420198",
+  "chars": 5,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-13.mp3": {
+  "sha256": "1ee83e072d182d20921e53411fa3d9f34b23e4d30a8fd8a8c843d01a0c1f38fb",
+  "chars": 7,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-14.mp3": {
+  "sha256": "1fc82ae841a6b0a6d7f1d165a51d88906d031f50c290e8d5bb4dc4ea4e546d1a",
+  "chars": 8,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-15.mp3": {
+  "sha256": "6383db0986872c29502c1dd92c8d5c9356de5bcea56c53609d42e8ea1e899653",
+  "chars": 8,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-16.mp3": {
+  "sha256": "71cee01521b0ae979cadc2c03e8c8d8f061851b3722b99e0dcb333cbc72b8565",
+  "chars": 7,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-17.mp3": {
+  "sha256": "8fe0ab89c09013b15ecf5db1f301fadc05afdee3135dbc3fce5e518dc16f3fc9",
+  "chars": 10,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-18.mp3": {
+  "sha256": "bc488f81f6311b62e18d1419f1a651dea9dc94968165b9e5d86b9bfd821ba64b",
+  "chars": 5,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-19.mp3": {
+  "sha256": "fd3438d72de29b9077a7645c4df99612c4a6194e62844cb9f800a06687946ef2",
+  "chars": 5,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ },
+ "audio/2026-11-23/words/word-20.mp3": {
+  "sha256": "382bfd9eac76f0a693e80281b27bd295f8c987e6d34843f885c8b909a090a74d",
+  "chars": 4,
+  "voice_id": "21m00Tcm4TlvDq8ikWAM",
+  "model_id": "eleven_multilingual_v2"
+ }
+}

@@ -71,12 +71,9 @@ FEEDS = [
     ("https://news.un.org/feed/subscribe/en/news/region/middle-east/feed/rss.xml", "أخبار الأمم المتحدة"),
     ("https://news.un.org/feed/subscribe/en/news/region/africa/feed/rss.xml", "أخبار الأمم المتحدة"),
     ("https://www.aljazeera.com/xml/rss/all.xml", "الجزيرة الإنجليزية"),
-    ("https://www.arabnews.com/rss.xml", "عرب نيوز"),
     ("https://www.thenationalnews.com/arc/outboundfeeds/rss/?outputType=xml", "ذا ناشيونال"),
     ("https://english.aawsat.com/feed", "الشرق الأوسط"),
-    ("https://www.moroccoworldnews.com/feed", "موروكو وورلد نيوز"),
     ("https://www.egyptindependent.com/feed/", "إيجيبت إندبندنت"),
-    ("https://english.ahram.org.eg/rss/ahram.aspx", "الأهرام أونلاين"),
     ("https://www.al-monitor.com/rss", "المونيتور"),
 ]
 

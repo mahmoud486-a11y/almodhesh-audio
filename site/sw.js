@@ -1,8 +1,8 @@
 // خدمة العمل دون اتصال لموقع المدهش.
 // - الصفحة وملفات الدرس: الشبكة أولًا (حتى يظهر درس اليوم فور نشره)، ثم النسخة المحفوظة عند انقطاع الاتصال.
 // - ملفات الصوت لا تُعترض (يتولاها المتصفح مباشرة).
-const CACHE = "almodhesh-v3";
-const SHELL = ["./", "index.html", "styles.css", "enhancements.css", "app.js", "lessons-data.js", "quiz.js", "quiz.css", "install.js",
+const CACHE = "almodhesh-v4";
+const SHELL = ["./", "index.html", "styles.css", "enhancements.css", "app.js", "lessons-data.js", "quiz.js", "quiz.css", "install.js", "weekly.js",
   "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", e => {

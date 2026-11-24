@@ -142,8 +142,8 @@ ML_WORDS_PER_SENTENCE = {"beginner": 8, "intermediate": 11, "advanced": 20}
 
 
 def ml_facts_answer():
-    cats = ["economy", "health", "sport"]
-    return {"archive_title": "اقتصاد، صحة ورياضة",
+    cats = ["politics", "economy", "health"]
+    return {"archive_title": "سياسة، اقتصاد وصحة",
             "stories": [{"news_id": i + 1, "category": cats[i], "country": c, "topic": f"عنوان {i + 1}",
                          "facts": [f"{c} opened a new project.", "The project started this week."]}
                         for i, c in enumerate(ML_COUNTRIES)]}
@@ -191,20 +191,36 @@ class MultiLevelValidationTests(unittest.TestCase):
         bad = ml_facts_answer()
         bad["stories"][0]["country"] = "Canada"
         bad["stories"][1]["facts"] = ["Senegal won a match.", "Fans were happy."]
-        for st in bad["stories"][1:3]:
-            st["category"] = "major event"
+        bad["stories"][2]["category"] = "economy"  # خبران اقتصاديان ولا خبر صحي
         joined = " | ".join(ml.validate_facts(bad, news_items()))
-        self.assertIn("at least 3 different categories", joined)
+        self.assertIn("exactly one politics, one economy and one health", joined)
         self.assertIn("story 1: must be about a MENA country", joined)
         self.assertIn("story 2: the facts must name", joined)
-        self.assertIn("at most 1 'major event'", joined)
+
+    def test_story_order_is_politics_economy_health(self):
+        facts = ml_facts_answer()
+        facts["stories"].reverse()
+        self.assertEqual(ml.validate_facts(facts, news_items()), [])  # أي ترتيب مقبول في الرد...
+
+        def fake(p, m, system=None, schema=None):
+            u = {"input_tokens": 1, "output_tokens": 1, "model": "claude-haiku-5-5"}
+            if schema is ml.FACTS_SCHEMA:
+                return facts, u
+            return ml_level_answer(next(l for l in ml.LEVEL_ORDER if f"Level: {l} (" in system)), u
+        with mock.patch.object(dl, "fetch_news", return_value=news_items()), mock.patch.object(dl, "call_claude", side_effect=fake), \
+             mock.patch.object(dl, "LESSONS_DIR", Path(tempfile.mkdtemp())), \
+             mock.patch.object(dl, "AI_USAGE_PATH", Path(tempfile.mkdtemp()) / "a.json"), \
+             mock.patch.object(dl, "known_translations", return_value={}), redirect_stdout(io.StringIO()):
+            lesson = ml.prepare(datetime(2026, 11, 25, tzinfo=ZoneInfo(dl.TIMEZONE)), "claude-haiku-5-5", 1900,
+                                list(ml.LEVEL_ORDER), [])
+        self.assertEqual([f["category"] for f in lesson["facts"]], ["politics", "economy", "health"])  # ...ويُرتَّب في الدرس
 
     def test_three_stories_and_source_diversity(self):
         ok = ml_facts_answer()
         self.assertEqual(len(ok["stories"]), 3)
         self.assertEqual(ml.validate_facts(ok, news_items()), [])
         four = ml_facts_answer()
-        four["stories"].append(dict(four["stories"][0], news_id=9, category="culture"))
+        four["stories"].append(dict(four["stories"][0], news_id=9))
         self.assertTrue(any("exactly 3 stories" in e for e in ml.validate_facts(four, news_items())))
         same = ml_facts_answer()
         for st, nid in zip(same["stories"], [1, 5, 9]):  # كلها من المصدر نفسه

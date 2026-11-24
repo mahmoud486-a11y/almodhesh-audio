@@ -23,10 +23,11 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import daily_lesson as dl
-from daily_lesson import (ARABIC, CATEGORIES, MAX_MAJOR_EVENTS, MENA_COUNTRIES, MENA_KEYWORDS, MIN_CATEGORIES,
+from daily_lesson import (ARABIC, MENA_COUNTRIES, MENA_KEYWORDS,
                           WORDS, read_json, summary, tokens, write_json)
 
 STORIES = 3           # ثلاثة أخبار يوميًا بالمستويات الثلاثة
+CATEGORIES = ["politics", "economy", "health"]  # خبر سياسي، وخبر اقتصادي، وخبر صحي — بهذا الترتيب
 MIN_SOURCES = 2       # تنوع المصادر: مصدران مختلفان على الأقل (ويُفضَّل ثلاثة)
 
 LEVEL_ORDER = ["beginner", "intermediate", "advanced"]
@@ -97,8 +98,8 @@ FACTS_PROMPT = """You choose the daily news for "Almodhesh" (المدهش), a we
 
 From the numbered news list, choose exactly 3 stories. Selection policy (mandatory):
 - Every story must be about the Middle East and North Africa (MENA): it must happen in, or directly concern, a MENA country. Countries elsewhere in Africa (for example Senegal, Nigeria, Kenya) are NOT MENA. Set "country" to that country, or "MENA region" for a story about several of them.
-- Give each of the 3 stories a different category from economy, technology, health, education, science, sport, culture and major event. Prefer positive, practical and human-interest news: business and jobs, innovation, health care, schools and universities, research, sports results, arts, heritage, travel and food.
-- Use the category "major event" for wars, conflicts, attacks, elections, diplomacy and other political news. Include at most ONE such story, only if it is truly major, and keep it neutral without graphic details.
+- Choose exactly one story for each category: "politics" (government decisions, elections, diplomacy, agreements, public policy), "economy" (business, trade, jobs, energy, markets, investment) and "health" (health care, medicine, public health, hospitals, research).
+- For the politics story prefer diplomacy, agreements and policy decisions over fighting; keep it neutral, factual and free of graphic details.
 - Avoid opinion pieces, rumors, crime stories and sensational news. Prefer a different source and a different country for each story (at least 2 different sources).
 
 For each story give:
@@ -107,7 +108,7 @@ For each story give:
 - "topic": a short Arabic title of 2–4 words.
 - "facts": 2 to 4 short factual statements in plain English, using only information stated in that item (who, what, where, when, numbers). Write them as neutral notes in your own words, not quotes. The first fact must name the MENA country, city or people. Never invent details.
 
-Also give "archive_title": the 3 topics as short Arabic categories joined with "، " and "و" before the last, e.g. "اقتصاد، صحة ورياضة".
+Also give "archive_title": the 3 topics as short Arabic categories joined with "، " and "و" before the last, e.g. "سياسة، اقتصاد وصحة".
 """
 
 
@@ -150,15 +151,11 @@ def validate_facts(data: dict, items) -> list[str]:
         if not ARABIC.search(s.get("topic", "")):
             errors.append(f"story {n}: Arabic topic missing")
     cats = [s.get("category") for s in stories]
-    need = min(MIN_CATEGORIES, STORIES)
-    if len(set(cats)) < need:
-        errors.append(f"use at least {need} different categories (got {len(set(cats))})")
+    if sorted(c for c in cats if c) != sorted(CATEGORIES):
+        errors.append(f"choose exactly one politics, one economy and one health story (got {', '.join(map(str, cats))})")
     sources = {by_id[i].source_ar for i in ids if i in by_id}
     if len(sources) < MIN_SOURCES:
         errors.append(f"use at least {MIN_SOURCES} different sources (got {len(sources)}: {', '.join(sorted(sources))})")
-    if cats.count("major event") > MAX_MAJOR_EVENTS:
-        errors.append(f"at most {MAX_MAJOR_EVENTS} 'major event' story; replace the others with economy, technology, "
-                      "health, education, science, sport or culture news")
     if not ARABIC.search(data.get("archive_title", "")):
         errors.append("archive_title must be Arabic")
     return errors
@@ -327,6 +324,7 @@ def prepare(day: datetime, model: str, daily_cap: int, text_levels: list[str], a
     if facts is None:
         summary("❌ تعذر اختيار أخبار صالحة. يبقى آخر درس صالح.")
         return None
+    facts["stories"].sort(key=lambda s: CATEGORIES.index(s["category"]))
 
     known = dl.known_translations()
     results: dict[str, dict] = {}

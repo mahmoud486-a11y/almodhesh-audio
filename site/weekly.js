@@ -69,13 +69,14 @@
   let state = null;
   const keys = weekKeys();
   const bestKey = `quiz-week-best-${keys[keys.length - 1] || ""}-${lessonDate}`;
+  // يُعرض في تبويب «الاختبار الأسبوعي» في الأعلى
   function section() {
     let el = document.getElementById("weeklyQuiz");
     if (!el) {
-      el = document.createElement("section");
+      el = document.createElement("div");
       el.id = "weeklyQuiz";
-      el.className = "quiz";
-      (document.getElementById("dailyQuiz") || document.querySelector(".sentence-summary")).after(el);
+      el.className = "quiz weekly-view";
+      document.getElementById("weekly").append(el);
     }
     return el;
   }

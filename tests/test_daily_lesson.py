@@ -363,7 +363,7 @@ class PipelineTests(unittest.TestCase):
         ]}
         code, out = self.full_run(review=[fixes])
         self.assertEqual(code, 0, out)
-        self.assertEqual(self.review_models, [("claude-opus-5-5", "high")])
+        self.assertEqual(self.review_models, [("claude-sonnet-5-5", "high")])
         lesson = json.loads(self.lesson_path.read_text(encoding="utf-8"))
         self.assertEqual(lesson["levels"]["beginner"]["stories"][0]["ar"], "جملة عربية مصححة، وواضحة")  # فاصلة عربية
         self.assertEqual(lesson["levels"]["advanced"]["words"][0][1], "طلاب")

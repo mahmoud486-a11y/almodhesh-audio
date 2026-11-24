@@ -298,7 +298,7 @@ def build_level(data: dict, facts: dict, items, generated_by: str) -> dict:
 
 
 # ---------------------------------------------------------------- الخطوة 3: التدقيق اللغوي العربي قبل النشر
-REVIEW_MODEL = "claude-opus-5-5"  # أقوى نموذج متاح للترجمة والتدقيق؛ يُغيَّر بالمتغير REVIEW_MODEL
+REVIEW_MODEL = "claude-sonnet-5-5"  # تدقيق لغوي قوي بتكلفة أقل؛ يُغيَّر بالمتغير REVIEW_MODEL (مثل claude-opus-5-5)
 REVIEW_SCHEMA = {
     "type": "object",
     "properties": {"corrections": {"type": "array", "items": {

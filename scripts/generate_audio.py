@@ -5,7 +5,9 @@
 - يتخطى أي نص سبق توليده ولم يتغير (بالاعتماد على بصمة SHA-256 في audio/manifest.json)
   حتى لا يُستهلك الرصيد مرتين.
 - وضع --dry-run لا يتصل بـ ElevenLabs إطلاقًا، ويعرض فقط ما سيتم توليده وعدد الأحرف.
-- حدود أمان: --limit (عدد الملفات) و --max-chars (إجمالي الأحرف في التشغيلة الواحدة).
+- حدود أمان: --limit (عدد الملفات) و --max-chars (إجمالي الأحرف في التشغيلة الواحدة)
+  و --daily-max-chars (إجمالي الأحرف في اليوم بحسب المنطقة الزمنية، يُسجَّل في audio/usage.json).
+- --check-balance يفحص صلاحية المفتاح والرصيد فقط دون توليد أي صوت (لا يستهلك رصيدًا).
 
 يعتمد على مكتبة بايثون القياسية فقط.
 """
@@ -21,7 +23,9 @@ import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 API_BASE = "https://api.elevenlabs.io/v1"
 DEFAULT_MODEL = "eleven_multilingual_v2"  # يدعم العربية
@@ -33,6 +37,8 @@ ROOT = Path(__file__).resolve().parent.parent
 TEXTS_DIR = ROOT / "texts"
 AUDIO_DIR = ROOT / "audio"
 MANIFEST_PATH = AUDIO_DIR / "manifest.json"
+DEFAULT_TIMEZONE = "America/Toronto"
+USAGE_HISTORY_DAYS = 90
 
 
 @dataclass
@@ -71,6 +77,22 @@ def save_manifest(manifest: dict, path: Path = MANIFEST_PATH) -> None:
         json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+
+
+def load_usage(path: Path) -> dict:
+    if path.exists():
+        return json.loads(path.read_text(encoding="utf-8"))
+    return {}
+
+
+def save_usage(usage: dict, path: Path) -> None:
+    keep = dict(sorted(usage.items())[-USAGE_HISTORY_DAYS:])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(keep, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def local_date(tz: str) -> str:
+    return datetime.now(ZoneInfo(tz)).strftime("%Y-%m-%d")
 
 
 def split_text(text: str, max_chars: int = MAX_CHUNK_CHARS) -> list[str]:
@@ -157,12 +179,19 @@ def api_request(
 
 
 def remaining_characters(api_key: str) -> int | None:
-    """يقرأ الرصيد المتبقي (لا يستهلك رصيدًا). يعيد None إن لم تسمح صلاحيات المفتاح بذلك."""
+    """يقرأ الرصيد المتبقي (لا يستهلك رصيدًا).
+
+    يحتاج المفتاح إلى صلاحية User → Read (user_read). يعيد None إن تعذّرت القراءة.
+    """
     try:
         info = json.loads(api_request("GET", "/user/subscription", api_key, timeout=30))
         return int(info["character_limit"]) - int(info["character_count"])
     except Exception as e:  # noqa: BLE001
-        print(f"تنبيه: تعذر قراءة الرصيد المتبقي ({e}). سيُتابَع دون التحقق.")
+        msg = str(e)
+        if "missing_permissions" in msg or "HTTP 401" in msg:
+            print("تنبيه: المفتاح لا يملك صلاحية قراءة الرصيد (User → Read / user_read).")
+        else:
+            print(f"تنبيه: تعذر قراءة الرصيد المتبقي ({msg[:200]}).")
         return None
 
 
@@ -197,9 +226,40 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--max-chars", type=int, default=0, help="أقصى مجموع أحرف في التشغيلة (0 = بلا حد)")
     p.add_argument("--file", default=None, help="توليد ملف واحد فقط (الاسم مع .txt أو بدونه)")
     p.add_argument("--force", action="store_true", help="إعادة التوليد حتى لو لم يتغير النص")
+    p.add_argument("--daily-max-chars", type=int, default=0, help="أقصى أحرف في اليوم المحلي (0 = بلا حد)")
+    p.add_argument("--timezone", default=DEFAULT_TIMEZONE, help="المنطقة الزمنية لحساب اليوم")
+    p.add_argument("--require-balance-check", action="store_true",
+                   help="الإيقاف إن تعذر التحقق من الرصيد (بدل المتابعة)")
+    p.add_argument("--check-balance", action="store_true",
+                   help="فحص المفتاح والرصيد فقط دون توليد (لا يستهلك رصيدًا)")
     p.add_argument("--texts-dir", type=Path, default=TEXTS_DIR)
     p.add_argument("--audio-dir", type=Path, default=AUDIO_DIR)
     args = p.parse_args(argv)
+
+    if args.check_balance:
+        api_key = os.environ.get("ELEVENLABS_API_KEY", "").strip()
+        if not api_key:
+            print("خطأ: متغير البيئة ELEVENLABS_API_KEY غير مضبوط.", file=sys.stderr)
+            return 2
+        remaining = remaining_characters(api_key)
+        if remaining is None:
+            return 4
+        print(f"المفتاح يعمل وصلاحية قراءة الرصيد متوفرة. الرصيد المتبقي: {remaining} حرف")
+        return 0
+
+    usage_path = args.audio_dir / "usage.json"
+    usage = load_usage(usage_path)
+    today = local_date(args.timezone)
+    if args.daily_max_chars > 0:
+        used_today = int(usage.get(today, 0))
+        available_today = max(0, args.daily_max_chars - used_today)
+        print(f"اليوم ({today}، {args.timezone}): استُخدم {used_today} من {args.daily_max_chars} حرف، "
+              f"المتاح {available_today}")
+        args.max_chars = (min(args.max_chars, available_today) if args.max_chars > 0
+                          else available_today)
+        if available_today == 0:
+            print("تم بلوغ الحد اليومي. لا توليد اليوم.")
+            return 0
 
     manifest_path = args.audio_dir / "manifest.json"
     manifest = load_manifest(manifest_path)
@@ -209,7 +269,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"لا يوجد شيء لتوليده للملف '{args.file}' (غير موجود أو مولَّد مسبقًا).")
     if args.limit > 0:
         jobs = jobs[: args.limit]
-    if args.max_chars > 0:
+    if args.max_chars > 0 or args.daily_max_chars > 0:
         selected, total = [], 0
         for job in jobs:
             if total + job.chars > args.max_chars:
@@ -240,6 +300,9 @@ def main(argv: list[str] | None = None) -> int:
     output_format = os.environ.get("ELEVENLABS_OUTPUT_FORMAT", "").strip() or DEFAULT_OUTPUT_FORMAT
 
     remaining = remaining_characters(api_key)
+    if remaining is None and args.require_balance_check:
+        print("خطأ: تعذر التحقق من الرصيد، أُلغيت التشغيلة دون استهلاك.", file=sys.stderr)
+        return 4
     if remaining is not None:
         print(f"الرصيد المتبقي: {remaining} حرف")
         if remaining < total_chars:
@@ -269,6 +332,8 @@ def main(argv: list[str] | None = None) -> int:
             "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         }
         save_manifest(manifest, manifest_path)  # حفظ بعد كل ملف حتى لا يضيع ما تم
+        usage[today] = int(usage.get(today, 0)) + job.chars
+        save_usage(usage, usage_path)
         print(f"  تم: {job.output} ({len(audio) // 1024} KB)")
 
     print(f"انتهى: {len(jobs) - failures} نجح، {failures} فشل.")

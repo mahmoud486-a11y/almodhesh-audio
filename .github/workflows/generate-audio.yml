@@ -1,13 +1,14 @@
 name: Generate Arabic audio (ElevenLabs)
 
 on:
-  # تشغيل يدوي للاختبار من تبويب Actions
+  # تشغيل يدوي من تبويب Actions
   workflow_dispatch:
     inputs:
-      dry_run:
-        description: "تجربة فقط بدون الاتصال بـ ElevenLabs (لا يستهلك رصيدًا)"
-        type: boolean
-        default: true
+      mode:
+        description: "generate = توليد | dry-run = تجربة بلا اتصال | check-balance = فحص المفتاح والرصيد فقط"
+        type: choice
+        options: [dry-run, check-balance, generate]
+        default: dry-run
       file:
         description: "اسم ملف نص واحد داخل texts/ (اتركه فارغًا لكل الملفات الجديدة)"
         type: string
@@ -17,91 +18,130 @@ on:
         type: string
         default: "1"
       max_chars:
-        description: "أقصى مجموع أحرف في هذه التشغيلة (0 = بلا حد)"
+        description: "أقصى مجموع أحرف في هذه التشغيلة (ويبقى الحد اليومي ساريًا)"
         type: string
         default: "500"
       force:
         description: "إعادة التوليد حتى لو كان الملف مولَّدًا مسبقًا (يستهلك رصيدًا)"
         type: boolean
         default: false
-      commit:
-        description: "حفظ ملفات MP3 الناتجة في المستودع (وإلا تُرفع كـ Artifact فقط)"
-        type: boolean
-        default: false
 
-  # ⚠️ الجدولة اليومية معطّلة عمدًا ولن تُفعَّل إلا بعد الموافقة.
-  # لتفعيلها: أزل علامة # من السطرين التاليين (الوقت بتوقيت UTC).
-  # schedule:
-  #   - cron: "17 3 * * *"
+  # يوميًا الساعة 6:00 صباحًا بتوقيت أوتاوا (America/Toronto).
+  # GitHub يستخدم UTC فقط، لذا يوجد موعدان وخطوة "Check Ottawa time" تسمح بموعد واحد فقط:
+  #   10:00 UTC = 6:00 في التوقيت الصيفي (EDT, UTC-4)
+  #   11:00 UTC = 6:00 في التوقيت الشتوي (EST, UTC-5)
+  schedule:
+    - cron: "0 10 * * *"
+    - cron: "0 11 * * *"
 
 permissions:
   contents: write
 
+# منع تشغيل عمليتي تحويل بالتزامن: أي تشغيلة جديدة تنتظر انتهاء السابقة
 concurrency:
   group: generate-audio
   cancel-in-progress: false
+
+env:
+  TIMEZONE: America/Toronto
+  DAILY_MAX_CHARS: "1000"
 
 jobs:
   generate:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - name: Check Ottawa time (scheduled runs only)
+        id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+          CRON: ${{ github.event.schedule }}
+        run: |
+          if [ "$EVENT" != "schedule" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          offset=$(TZ="$TIMEZONE" date +%z)   # -0400 صيفًا / -0500 شتاءً
+          if { [ "$offset" = "-0400" ] && [ "$CRON" = "0 10 * * *" ]; } || \
+             { [ "$offset" = "-0500" ] && [ "$CRON" = "0 11 * * *" ]; }; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            echo "الموعد الصحيح لـ 6:00 بتوقيت أوتاوا (UTC$offset)."
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "تخطي: هذا الموعد لا يطابق 6:00 بتوقيت أوتاوا حاليًا (UTC$offset)."
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.gate.outputs.run == 'true'
+        with:
+          # أحدث نسخة من الفرع الافتراضي وقت التشغيل (وليس وقت الجدولة)،
+          # حتى يرى سجل التحويل الذي حفظته أي تشغيلة سابقة فلا يعيد التحويل
+          ref: ${{ github.event_name == 'schedule' && github.event.repository.default_branch || github.ref }}
 
       - uses: actions/setup-python@v5
+        if: steps.gate.outputs.run == 'true'
         with:
           python-version: "3.12"
 
       - name: Run tests (offline, no API calls)
+        if: steps.gate.outputs.run == 'true'
         run: python -m unittest discover -s tests -v
 
       - name: Generate audio
+        id: generate
+        if: steps.gate.outputs.run == 'true'
         env:
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           ELEVENLABS_VOICE_ID: ${{ vars.ELEVENLABS_VOICE_ID }}
           ELEVENLABS_MODEL_ID: ${{ vars.ELEVENLABS_MODEL_ID }}
           # القيم تُمرَّر عبر env وليس داخل السكربت مباشرة، لتجنب حقن الأوامر
           IS_SCHEDULE: ${{ github.event_name == 'schedule' }}
-          IN_DRY_RUN: ${{ inputs.dry_run }}
+          IN_MODE: ${{ inputs.mode }}
           IN_FILE: ${{ inputs.file }}
           IN_LIMIT: ${{ inputs.limit }}
           IN_MAX_CHARS: ${{ inputs.max_chars }}
           IN_FORCE: ${{ inputs.force }}
-          # حدود التشغيل المجدول (عند تفعيله لاحقًا)
-          SCHEDULE_LIMIT: "10"
-          SCHEDULE_MAX_CHARS: "10000"
         run: |
-          args=()
-          if [ "$IS_SCHEDULE" = "true" ]; then
-            args+=(--limit "$SCHEDULE_LIMIT" --max-chars "$SCHEDULE_MAX_CHARS")
-          else
-            [ "$IN_DRY_RUN" = "true" ] && args+=(--dry-run)
+          args=(--timezone "$TIMEZONE" --daily-max-chars "$DAILY_MAX_CHARS" --require-balance-check)
+          mode="generate"
+          if [ "$IS_SCHEDULE" != "true" ]; then
+            mode="${IN_MODE:-dry-run}"
             [ "$IN_FORCE" = "true" ] && args+=(--force)
             [ -n "$IN_FILE" ] && args+=(--file "$IN_FILE")
             args+=(--limit "${IN_LIMIT:-1}" --max-chars "${IN_MAX_CHARS:-500}")
           fi
-          python scripts/generate_audio.py "${args[@]}"
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          case "$mode" in
+            check-balance) python scripts/generate_audio.py --check-balance ;;
+            dry-run)       python scripts/generate_audio.py --dry-run "${args[@]}" ;;
+            generate)      python scripts/generate_audio.py "${args[@]}" ;;
+            *) echo "وضع غير معروف: $mode"; exit 1 ;;
+          esac
 
-      - name: Upload MP3 files as artifact
-        if: ${{ !inputs.dry_run }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: audio-${{ github.run_number }}
-          path: |
-            audio/*.mp3
-            audio/manifest.json
-          if-no-files-found: ignore
-          retention-days: 14
-
-      - name: Commit generated audio
-        if: ${{ github.event_name == 'schedule' || (!inputs.dry_run && inputs.commit) }}
+      # الحفظ يتم حتى لو فشل جزء من التحويل، كي لا يُعاد تحويل ما نجح ولا يضيع سجل الاستهلاك
+      - name: Commit generated audio and logs
+        if: ${{ !cancelled() && steps.gate.outputs.run == 'true' && steps.generate.outputs.mode == 'generate' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add audio/
           if git diff --cached --quiet; then
             echo "لا توجد ملفات جديدة للحفظ."
-          else
-            git commit -m "Add generated audio [skip ci]"
-            git push
+            exit 0
           fi
+          git commit -m "Add generated audio [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase -q && git push && exit 0
+            sleep $((i * 5))
+          done
+          exit 1
+
+      - name: Upload MP3 files as artifact
+        if: ${{ !cancelled() && steps.generate.outputs.mode == 'generate' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: audio-${{ github.run_number }}
+          path: |
+            audio/*.mp3
+            audio/*.json
+          if-no-files-found: ignore
+          retention-days: 14

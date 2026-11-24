@@ -310,7 +310,7 @@ def call_claude(prompt: str, model: str) -> tuple[dict, dict]:
         raise RuntimeError("انقطع رد النموذج (max_tokens)")
     text = next(b.text for b in response.content if b.type == "text")
     usage = {"input_tokens": response.usage.input_tokens, "output_tokens": response.usage.output_tokens,
-             "model": response.model, "request_id": getattr(response, "_request_id", None)}
+             "model": response.model}
     return json.loads(text), usage
 
 
@@ -428,7 +428,7 @@ def prepare(day: datetime, model: str, budget: int, attempts: int = 3) -> dict |
         try:
             data, usage = call_claude(news_prompt(items, budget, feedback), model)
         except Exception as e:  # noqa: BLE001
-            print(f"  فشل الطلب: {str(e)[:300]}")
+            print(f"  فشل الطلب: {tts.sanitize(e)[:300]}")
             feedback = []
             time.sleep(10)
             continue
@@ -511,11 +511,11 @@ def generate_audio(daily_cap: int = DAILY_MAX_CHARS) -> bool:
         return False
     remaining = tts.remaining_characters(api_key)
     if remaining is None or remaining < total:
-        summary(f"⚠️ الرصيد غير كافٍ أو تعذّر فحصه (المتبقي: {remaining}، المطلوب: {total}). لم يُولَّد صوت.")
+        summary(f"⚠️ رصيد ElevenLabs غير كافٍ أو تعذّر فحصه (المطلوب: {total} حرف). لم يُولَّد صوت.")
         attach_audio(lesson, manifest)
         write_json(path, lesson)
         return False
-    print(f"الرصيد المتبقي في ElevenLabs: {remaining} | سيُولَّد {len(selected)} تسجيل ({total} حرف)")
+    print(f"رصيد ElevenLabs كافٍ | سيُولَّد {len(selected)} تسجيل ({total} حرف)")
 
     done, failed = 0, 0
     for rel, text, digest in selected:
@@ -523,7 +523,7 @@ def generate_audio(daily_cap: int = DAILY_MAX_CHARS) -> bool:
             audio = tts.synthesize(text, api_key, voice_id, model_id, "mp3_44100_128")
         except RuntimeError as e:
             failed += 1
-            print(f"  فشل {rel}: {e}")
+            print(f"  فشل {rel}: {tts.sanitize(e)}")
             if "HTTP 401" in str(e) or "quota_exceeded" in str(e):
                 break
             continue

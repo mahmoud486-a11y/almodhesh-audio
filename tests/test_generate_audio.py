@@ -147,9 +147,22 @@ class PipelineTests(unittest.TestCase):
         with mock.patch.object(ga, "api_request", side_effect=self._fake(limit=500, used=100)) as api:
             code, out = self.run_main("--check-balance", env={"ELEVENLABS_API_KEY": "k"})
         self.assertEqual(code, 0)
-        self.assertIn("400", out)
+        self.assertIn("متوفرة", out)
+        self.assertNotIn("400", out)  # رقم الرصيد لا يظهر في السجلات
         self.assertEqual([c.args[1] for c in api.call_args_list], ["/user/subscription"])
 
+
+    def test_balance_number_never_printed(self):
+        with mock.patch.object(ga, "api_request", side_effect=self._fake(limit=987654, used=0)):
+            _, out = self.run_main(env={"ELEVENLABS_API_KEY": "k"})
+        self.assertNotIn("987654", out)
+
+    def test_error_messages_hide_request_ids(self):
+        raw = '{"detail":{"type":"authentication_error","code":"unauthorized","message":"missing user_read",' \
+              '"status":"missing_permissions","request_id":"7b8cd9934a73325e93166cd9d425a705"}}'
+        self.assertEqual(ga._error_detail(raw), "missing_permissions: missing user_read")
+        self.assertNotIn("7b8cd99", ga.sanitize(f"HTTP 401: {raw}"))
+        self.assertNotIn("req_011", ga.sanitize("Error code: 500 - {'request_id': 'req_011CXabc'}"))
 
     def test_max_chars_limit(self):
         code, out = self.run_main("--dry-run", "--max-chars", "15")

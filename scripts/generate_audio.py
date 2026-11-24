@@ -145,6 +145,27 @@ def collect_jobs(
     return jobs
 
 
+_REQUEST_ID = re.compile(
+    r"""["']?\b(?:x-)?request[_-]?id["']?\s*[:=]\s*["']?[A-Za-z0-9_.-]+["']?,?\s*|\breq_[A-Za-z0-9]+""", re.I)
+
+
+def sanitize(message: str) -> str:
+    """يحذف معرّفات الطلبات من رسائل الأخطاء قبل طباعتها في السجلات العامة."""
+    return _REQUEST_ID.sub("", str(message))
+
+
+def _error_detail(raw: str) -> str:
+    """يختصر رد الخطأ إلى الحالة والرسالة فقط (دون معرّف الطلب أو أي بيانات حساب)."""
+    try:
+        data = json.loads(raw)
+        d = data.get("detail", data) if isinstance(data, dict) else data
+        if isinstance(d, dict):
+            return f"{d.get('status') or d.get('code') or ''}: {d.get('message', '')}".strip(": ")
+    except (ValueError, AttributeError):
+        pass
+    return sanitize(raw)
+
+
 def api_request(
     method: str,
     path: str,
@@ -165,7 +186,7 @@ def api_request(
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return resp.read()
         except urllib.error.HTTPError as e:
-            detail = e.read().decode("utf-8", "replace")[:500]
+            detail = _error_detail(e.read().decode("utf-8", "replace"))[:300]
             # 429/5xx قابلة لإعادة المحاولة؛ غيرها (401، 402، 422...) خطأ نهائي
             if e.code == 429 or e.code >= 500:
                 last_err = RuntimeError(f"HTTP {e.code}: {detail}")
@@ -175,7 +196,7 @@ def api_request(
         except urllib.error.URLError as e:
             last_err = e
             time.sleep(2 ** attempt * 3)
-    raise RuntimeError(f"فشل الطلب بعد عدة محاولات: {last_err}")
+    raise RuntimeError(sanitize(f"فشل الطلب بعد عدة محاولات: {last_err}"))
 
 
 def remaining_characters(api_key: str) -> int | None:
@@ -191,7 +212,7 @@ def remaining_characters(api_key: str) -> int | None:
         if "missing_permissions" in msg or "HTTP 401" in msg:
             print("تنبيه: المفتاح لا يملك صلاحية قراءة الرصيد (User → Read / user_read).")
         else:
-            print(f"تنبيه: تعذر قراءة الرصيد المتبقي ({msg[:200]}).")
+            print(f"تنبيه: تعذر قراءة الرصيد المتبقي ({sanitize(msg)[:200]}).")
         return None
 
 
@@ -244,7 +265,9 @@ def main(argv: list[str] | None = None) -> int:
         remaining = remaining_characters(api_key)
         if remaining is None:
             return 4
-        print(f"المفتاح يعمل وصلاحية قراءة الرصيد متوفرة. الرصيد المتبقي: {remaining} حرف")
+        # لا يُطبع رقم الرصيد لأن سجلات التشغيل قد تكون عامة
+        enough = "يكفي" if remaining >= max(args.daily_max_chars, 1000) else "لا يكفي"
+        print(f"المفتاح يعمل وصلاحية قراءة الرصيد متوفرة. الرصيد {enough} لحد يومي واحد.")
         return 0
 
     usage_path = args.audio_dir / "usage.json"
@@ -304,8 +327,9 @@ def main(argv: list[str] | None = None) -> int:
         print("خطأ: تعذر التحقق من الرصيد، أُلغيت التشغيلة دون استهلاك.", file=sys.stderr)
         return 4
     if remaining is not None:
-        print(f"الرصيد المتبقي: {remaining} حرف")
-        if remaining < total_chars:
+        if remaining >= total_chars:
+            print("الرصيد كافٍ لهذه التشغيلة.")
+        else:
             print("خطأ: الرصيد غير كافٍ لهذه التشغيلة. أُلغيت دون استهلاك.", file=sys.stderr)
             return 3
 
@@ -317,7 +341,7 @@ def main(argv: list[str] | None = None) -> int:
             audio = synthesize(job.text, api_key, voice_id, model_id, output_format)
         except RuntimeError as e:
             failures += 1
-            print(f"  فشل: {e}", file=sys.stderr)
+            print(f"  فشل: {sanitize(e)}", file=sys.stderr)
             if "HTTP 401" in str(e) or "quota_exceeded" in str(e):
                 print("  إيقاف بقية الملفات (مفتاح غير صالح أو نفاد الرصيد).", file=sys.stderr)
                 break

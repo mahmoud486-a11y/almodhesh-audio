@@ -40,7 +40,7 @@ def main(argv=None) -> int:
         try:
             data = json.loads(tts.api_request("GET", "/history", key, query=query, timeout=60))
         except RuntimeError as e:
-            print(f"تعذرت قراءة السجل: {str(e)[:300]}")
+            print(f"تعذرت قراءة السجل: {tts.sanitize(e)[:300]}")
             if "missing_permissions" in str(e) or "HTTP 401" in str(e):
                 print("أضف للمفتاح صلاحية Speech History → Read ثم أعد التشغيل.")
             return 4
@@ -69,7 +69,7 @@ def main(argv=None) -> int:
         voice = json.loads(tts.api_request("GET", f"/voices/{vid}", key, timeout=60))
         print(f"تفاصيل الصوت: {json.dumps(voice.get('labels', {}), ensure_ascii=False)} | الفئة: {voice.get('category')}")
     except RuntimeError as e:
-        print(f"(تعذر جلب تفاصيل الصوت: {str(e)[:150]})")
+        print(f"(تعذر جلب تفاصيل الصوت: {tts.sanitize(e)[:150]})")
     return 0
 
 

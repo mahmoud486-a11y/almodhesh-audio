@@ -1,0 +1,114 @@
+name: Daily lesson (Almodhesh)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: >-
+          news-check = فحص مصادر الأخبار (مجاني) | voice-info = تحديد صوت درس 21 نوفمبر (مجاني) |
+          run = إعداد درس اليوم وصوته ونشره | audio-only = إكمال الصوت الناقص لأحدث درس | deploy-only = إعادة النشر فقط
+        type: choice
+        options: [news-check, voice-info, run, audio-only, deploy-only]
+        default: news-check
+
+  # يوميًا 6:00 صباحًا بتوقيت أوتاوا. GitHub يستخدم UTC فقط، لذا موعدان وخطوة تحقق تسمح بواحد فقط:
+  #   10:00 UTC = 6:00 صيفًا (EDT)   |   11:00 UTC = 6:00 شتاءً (EST)
+  schedule:
+    - cron: "0 10 * * *"
+    - cron: "0 11 * * *"
+
+permissions:
+  contents: write
+
+# تحويل واحد فقط في أي وقت (مشترك مع سير عمل الصوت العربي)
+concurrency:
+  group: elevenlabs
+  cancel-in-progress: false
+
+env:
+  TIMEZONE: America/Toronto
+
+jobs:
+  lesson:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
+    steps:
+      - name: Check Ottawa time (scheduled runs only)
+        id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+          CRON: ${{ github.event.schedule }}
+        run: |
+          if [ "$EVENT" != "schedule" ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          offset=$(TZ="$TIMEZONE" date +%z)
+          if { [ "$offset" = "-0400" ] && [ "$CRON" = "0 10 * * *" ]; } || \
+             { [ "$offset" = "-0500" ] && [ "$CRON" = "0 11 * * *" ]; }; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; echo "6:00 بتوقيت أوتاوا (UTC$offset)."
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"; echo "تخطي: هذا الموعد لا يطابق 6:00 بتوقيت أوتاوا (UTC$offset)."
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.run == 'true'
+        with:
+          # أحدث نسخة من الفرع الافتراضي وقت التشغيل، كي لا يُعاد ما أنجزته تشغيلة سابقة
+          ref: ${{ github.event.repository.default_branch }}
+
+      - uses: actions/setup-python@v5
+        if: steps.gate.outputs.run == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies and run offline tests
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          pip install -q -r requirements.txt
+          python -m unittest discover -s tests
+
+      - name: Run
+        id: run
+        if: steps.gate.outputs.run == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          LESSON_MODEL: ${{ vars.LESSON_MODEL }}
+          ELEVENLABS_LESSON_VOICE_ID: ${{ vars.ELEVENLABS_LESSON_VOICE_ID }}
+          ELEVENLABS_LESSON_MODEL_ID: ${{ vars.ELEVENLABS_LESSON_MODEL_ID }}
+          MODE: ${{ github.event_name == 'schedule' && 'run' || inputs.mode }}
+        run: |
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          case "$MODE" in
+            news-check)  python scripts/daily_lesson.py news ;;
+            voice-info)  python scripts/elevenlabs_history.py --lesson 2026-11-21 ;;
+            run)         python scripts/daily_lesson.py run ;;
+            audio-only)  python scripts/daily_lesson.py audio ;;
+            deploy-only) echo "إعادة نشر فقط." ;;
+            *) echo "وضع غير معروف: $MODE"; exit 1 ;;
+          esac
+
+      # يُحفظ ما أُنجز حتى لو فشل جزء (مثل نقص الصوت)، كي لا يُعاد توليده ولا يضيع سجل الاستهلاك
+      - name: Commit lesson, audio and logs
+        id: commit
+        if: ${{ !cancelled() && steps.gate.outputs.run == 'true' && (steps.run.outputs.mode == 'run' || steps.run.outputs.mode == 'audio-only') }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add site/ audio/usage.json logs/ 2>/dev/null || true
+          if git diff --cached --quiet; then echo "لا تغييرات."; echo "changed=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          git commit -q -m "Daily lesson $(TZ="$TIMEZONE" date +%F) [skip ci]"
+          for i in 1 2 3; do
+            if git pull --rebase -q && git push -q; then echo "changed=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+            sleep $((i * 5))
+          done
+          exit 1
+
+  deploy:
+    needs: lesson
+    if: ${{ !cancelled() && (needs.lesson.outputs.changed == 'true' || inputs.mode == 'deploy-only') }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/deploy-pages.yml

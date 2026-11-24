@@ -26,20 +26,15 @@ on:
         type: boolean
         default: false
 
-  # يوميًا الساعة 6:00 صباحًا بتوقيت أوتاوا (America/Toronto).
-  # GitHub يستخدم UTC فقط، لذا يوجد موعدان وخطوة "Check Ottawa time" تسمح بموعد واحد فقط:
-  #   10:00 UTC = 6:00 في التوقيت الصيفي (EDT, UTC-4)
-  #   11:00 UTC = 6:00 في التوقيت الشتوي (EST, UTC-5)
-  schedule:
-    - cron: "0 10 * * *"
-    - cron: "0 11 * * *"
+  # التشغيل اليومي التلقائي انتقل إلى سير عمل "Daily lesson (Almodhesh)".
+  # هذا السير لتحويل النصوص العربية في texts/ يدويًا فقط، ويشترك معه في الحد اليومي (audio/usage.json).
 
 permissions:
   contents: write
 
-# منع تشغيل عمليتي تحويل بالتزامن: أي تشغيلة جديدة تنتظر انتهاء السابقة
+# منع تشغيل عمليتي تحويل بالتزامن (مشترك مع سير الدرس اليومي)
 concurrency:
-  group: generate-audio
+  group: elevenlabs
   cancel-in-progress: false
 
 env:

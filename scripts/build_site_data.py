@@ -19,7 +19,8 @@ BASE_TRANSLATIONS = LESSONS_DIR / "_base-translations.json"
 KEY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
-def load_lessons(lessons_dir: Path = LESSONS_DIR) -> list[dict]:
+def load_lessons(lessons_dir: Path | None = None) -> list[dict]:
+    lessons_dir = lessons_dir or LESSONS_DIR
     lessons = []
     for path in sorted(lessons_dir.glob("*.json")):
         if not KEY_RE.match(path.stem):
@@ -76,7 +77,9 @@ def render(lessons: list[dict], translations: dict) -> str:
     )
 
 
-def build(lessons_dir: Path = LESSONS_DIR, output: Path = OUTPUT) -> str:
+def build(lessons_dir: Path | None = None, output: Path | None = None) -> str:
+    lessons_dir = lessons_dir or LESSONS_DIR
+    output = output or OUTPUT
     lessons = load_lessons(lessons_dir)
     text = render(lessons, merged_translations(lessons, lessons_dir / "_base-translations.json"))
     output.write_text(text, encoding="utf-8")

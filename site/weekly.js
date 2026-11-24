@@ -1,8 +1,8 @@
-// اختبار الأسبوع: عشرة أسئلة من دروس آخر سبعة أيام.
+// اختبار الأسبوع: عشرة أسئلة من دروس آخر خمسة أيام.
 // يُبنى من بيانات الدروس الموجودة في الصفحة (لا اتصال بأي خدمة، ولا تكلفة).
 // يعتمد على متغيرات app.js العامة: lessons, lessonDate, lessonAudio, utter, stopPlayback, activeHumanAudio.
 (function () {
-  const DAYS = 7;
+  const DAYS = 5;
   const QUESTIONS = 10;
   const store = {
     get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
@@ -14,7 +14,7 @@
   const MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
   const label = key => { const [, m, d] = key.split("-").map(Number); return `${d} ${MONTHS[m - 1]}`; };
 
-  // دروس آخر 7 أيام حتى أحدث درس
+  // دروس آخر 5 أيام حتى أحدث درس
   function weekKeys() {
     const end = new Date(lessonDate + "T12:00:00");
     const start = new Date(end); start.setDate(start.getDate() - (DAYS - 1));

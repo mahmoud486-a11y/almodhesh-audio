@@ -26,27 +26,27 @@ import daily_lesson as dl
 from daily_lesson import (ARABIC, CATEGORIES, MAX_MAJOR_EVENTS, MENA_COUNTRIES, MENA_KEYWORDS, MIN_CATEGORIES,
                           WORDS, read_json, summary, tokens, write_json)
 
-STORIES = 4           # أربعة أخبار يوميًا بالمستويات الثلاثة
-MIN_SOURCES = 3       # تنوع المصادر: ثلاثة مصادر مختلفة على الأقل
+STORIES = 3           # ثلاثة أخبار يوميًا بالمستويات الثلاثة
+MIN_SOURCES = 2       # تنوع المصادر: مصدران مختلفان على الأقل (ويُفضَّل ثلاثة)
 
 LEVEL_ORDER = ["beginner", "intermediate", "advanced"]
 DEFAULT_LEVEL = "intermediate"
 EXERCISES = 3
 LEVELS = {
     "beginner": {
-        "ar": "مبتدئ", "cefr": "A1–A2", "en_min": 30, "en_max": 95, "audio_max": 550,
-        "style": "CEFR A1–A2. ONE short sentence (8–15 words), present or past simple, the 1,500 most common English "
+        "ar": "مبتدئ", "cefr": "A1–A2", "en_min": 30, "en_max": 130, "audio_max": 500,
+        "style": "CEFR A1–A2. One or two short sentences (6–12 words each), present or past simple, the 1,500 most common English "
                  "words, no idioms, no passive voice. Vocabulary: concrete everyday words. Comprehension questions "
                  "are very simple (who / what / where) with short options.",
     },
     "intermediate": {
-        "ar": "متوسط", "cefr": "B1–B2", "en_min": 60, "en_max": 140, "audio_max": 750,
+        "ar": "متوسط", "cefr": "B1–B2", "en_min": 60, "en_max": 140, "audio_max": 600,
         "style": "CEFR B1–B2. ONE natural sentence (14–24 words) that may use a relative clause, present perfect or "
                  "passive voice. Vocabulary: common news and work words. Comprehension questions check the main "
                  "idea and one detail.",
     },
     "advanced": {
-        "ar": "متقدم", "cefr": "C1–C2", "en_min": 90, "en_max": 230, "audio_max": 950,
+        "ar": "متقدم", "cefr": "C1–C2", "en_min": 90, "en_max": 230, "audio_max": 800,
         "style": "CEFR C1–C2. One or two sophisticated sentences (22–38 words in total) in a professional news "
                  "register: complex clauses, precise and formal vocabulary, natural collocations. Vocabulary: "
                  "advanced and academic words. Comprehension questions test inference, cause and effect, or "
@@ -95,11 +95,11 @@ FACTS_SCHEMA = {
 
 FACTS_PROMPT = """You choose the daily news for "Almodhesh" (المدهش), a website where Arabic speakers learn American English from news.
 
-From the numbered news list, choose exactly 4 stories. Selection policy (mandatory):
+From the numbered news list, choose exactly 3 stories. Selection policy (mandatory):
 - Every story must be about the Middle East and North Africa (MENA): it must happen in, or directly concern, a MENA country. Countries elsewhere in Africa (for example Senegal, Nigeria, Kenya) are NOT MENA. Set "country" to that country, or "MENA region" for a story about several of them.
-- Give each of the 4 stories a different category from economy, technology, health, education, science, sport, culture and major event. Prefer positive, practical and human-interest news: business and jobs, innovation, health care, schools and universities, research, sports results, arts, heritage, travel and food.
+- Give each of the 3 stories a different category from economy, technology, health, education, science, sport, culture and major event. Prefer positive, practical and human-interest news: business and jobs, innovation, health care, schools and universities, research, sports results, arts, heritage, travel and food.
 - Use the category "major event" for wars, conflicts, attacks, elections, diplomacy and other political news. Include at most ONE such story, only if it is truly major, and keep it neutral without graphic details.
-- Avoid opinion pieces, rumors, crime stories and sensational news. Use at least 3 different sources and prefer different countries.
+- Avoid opinion pieces, rumors, crime stories and sensational news. Prefer a different source and a different country for each story (at least 2 different sources).
 
 For each story give:
 - "news_id": the number of the item.
@@ -107,7 +107,7 @@ For each story give:
 - "topic": a short Arabic title of 2–4 words.
 - "facts": 2 to 4 short factual statements in plain English, using only information stated in that item (who, what, where, when, numbers). Write them as neutral notes in your own words, not quotes. The first fact must name the MENA country, city or people. Never invent details.
 
-Also give "archive_title": the 4 topics as short Arabic categories joined with "، " and "و" before the last, e.g. "اقتصاد، صحة، تعليم ورياضة".
+Also give "archive_title": the 3 topics as short Arabic categories joined with "، " and "و" before the last, e.g. "اقتصاد، صحة ورياضة".
 """
 
 
@@ -196,15 +196,15 @@ LEVEL_SCHEMA = {
 
 LEVEL_PROMPT = """You write one level of the daily lesson for "Almodhesh" (المدهش), where Arabic speakers learn American English from news.
 
-You receive 4 numbered stories, each with a few facts. Write ONLY from these facts: do not add, change or invent any fact, number, name or date, so all levels stay factually identical. Write in your own words; do not reproduce any source wording.
+You receive 3 numbered stories, each with a few facts. Write ONLY from these facts: do not add, change or invent any fact, number, name or date, so all levels stay factually identical. Write in your own words; do not reproduce any source wording.
 
 Level: {level_name} ({cefr}). {style}
 
 Return:
-- "stories": exactly 4 items in the same order. "en": American English ({en_min}–{en_max} characters, American spelling, ending with a period) that names the MENA country, city or people. "ar": a natural and accurate Modern Standard Arabic translation.
+- "stories": exactly 3 items in the same order. "en": American English ({en_min}–{en_max} characters, American spelling, ending with a period) that names the MENA country, city or people. "ar": a natural and accurate Modern Standard Arabic translation.
 - "words": exactly 20 vocabulary words suited to this level. Each "en" is a single word copied exactly as it appears in your texts (lowercase unless a proper noun); "ar" is its Arabic meaning in that sentence.
-- "translations": an Arabic gloss for EVERY distinct word in your 4 texts ("word" lowercase as it appears without surrounding punctuation, keeping apostrophes and hyphens).
-- Audio limit: the 4 English texts plus the 20 words must total at most {audio_max} characters.
+- "translations": an Arabic gloss for EVERY distinct word in your 3 texts ("word" lowercase as it appears without surrounding punctuation, keeping apostrophes and hyphens).
+- Audio limit: the 3 English texts plus the 20 words must total at most {audio_max} characters.
 - "exercises": exactly 3 multiple-choice comprehension questions about these stories, suited to this level. "question" in English, "question_ar" its Arabic translation, "options": exactly 4 short distinct English options, "answer": the index (0–3) of the correct option.
 """
 

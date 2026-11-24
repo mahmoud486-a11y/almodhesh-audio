@@ -15,6 +15,10 @@
   document.write('<script src="lessons-data-' + level + '.js"><\/script>');
 
   document.addEventListener("DOMContentLoaded", () => {
+    // خانة «المستوى» الموجودة: يتغير نص المستوى فقط ليطابق اختيار المتعلم (العنصر وتنسيقه كما هما)
+    const stat = [...document.querySelectorAll(".stats span")].find(el => el.textContent.includes("المستوى"));
+    if (stat) stat.textContent = stat.textContent.replace(/[ABC][12]–[ABC][12]/, LEVELS[level].cefr);
+
     const bar = document.createElement("div");
     bar.className = "level-switch";
     bar.setAttribute("role", "group");
@@ -31,7 +35,7 @@
       location.reload();
     });
 
-    // دروس الأخبار الأربعة: تعديل الرقم في النصوص الموجودة فقط (ستة ← أربعة)، ومطابقة أزرار أرقام الأخبار
+    // دروس الأخبار الثلاثة: تعديل الرقم في النصوص الموجودة فقط (ستة ← ثلاثة)، ومطابقة أزرار أرقام الأخبار
     const NUM = { 3: ["ثلاثة", "الثلاثة"], 4: ["أربعة", "الأربعة"], 5: ["خمسة", "الخمسة"], 6: ["ستة", "الستة"] };
     const targets = [
       [document.querySelector("#today .hero > p:not(.eyebrow)"), "count"],

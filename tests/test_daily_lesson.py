@@ -132,18 +132,18 @@ class ValidationTests(unittest.TestCase):
 
 import multilevel as ml  # noqa: E402
 
-ML_COUNTRIES = ["Egypt", "Morocco", "Oman", "Jordan"]
+ML_COUNTRIES = ["Egypt", "Morocco", "Oman"]
 ML_POOL = ("students teachers schools doctors hospitals farmers workers markets prices factories engineers "
            "scientists researchers players coaches artists museums festivals tourists hotels airports trains "
            "banks companies startups phones computers robots satellites rockets clinics vaccines patients "
            "rivers forests deserts beaches gardens parks bridges roads ports ships trucks buses libraries "
            "universities classes exams lessons books films songs dancers singers writers").split()
-ML_WORDS_PER_SENTENCE = {"beginner": 5, "intermediate": 11, "advanced": 20}
+ML_WORDS_PER_SENTENCE = {"beginner": 8, "intermediate": 11, "advanced": 20}
 
 
 def ml_facts_answer():
-    cats = ["economy", "technology", "health", "sport"]
-    return {"archive_title": "اقتصاد، تقنية، صحة ورياضة",
+    cats = ["economy", "health", "sport"]
+    return {"archive_title": "اقتصاد، صحة ورياضة",
             "stories": [{"news_id": i + 1, "category": cats[i], "country": c, "topic": f"عنوان {i + 1}",
                          "facts": [f"{c} opened a new project.", "The project started this week."]}
                         for i, c in enumerate(ML_COUNTRIES)]}
@@ -173,7 +173,7 @@ class MultiLevelValidationTests(unittest.TestCase):
     def test_lengths_are_level_specific(self):
         adv = ml_level_answer("advanced")
         errs = ml.validate_level(adv, "beginner", {}, None)  # جمل المتقدم أطول من حد المبتدئ
-        self.assertTrue(any("English must be 30-95" in e for e in errs))
+        self.assertTrue(any("English must be 30-130" in e for e in errs))
         beg = ml_level_answer("beginner")
         self.assertTrue(any("English must be 90-230" in e for e in ml.validate_level(beg, "advanced", {}, None)))
 
@@ -191,24 +191,25 @@ class MultiLevelValidationTests(unittest.TestCase):
         bad = ml_facts_answer()
         bad["stories"][0]["country"] = "Canada"
         bad["stories"][1]["facts"] = ["Senegal won a match.", "Fans were happy."]
-        for st in bad["stories"][2:4]:
+        for st in bad["stories"][1:3]:
             st["category"] = "major event"
         joined = " | ".join(ml.validate_facts(bad, news_items()))
-        self.assertIn("at least 4 different categories", joined)
+        self.assertIn("at least 3 different categories", joined)
         self.assertIn("story 1: must be about a MENA country", joined)
         self.assertIn("story 2: the facts must name", joined)
         self.assertIn("at most 1 'major event'", joined)
 
-    def test_four_stories_and_three_sources(self):
+    def test_three_stories_and_source_diversity(self):
         ok = ml_facts_answer()
-        self.assertEqual(len(ok["stories"]), 4)
-        six = ml_facts_answer()
-        six["stories"] += [dict(six["stories"][0], news_id=9), dict(six["stories"][1], news_id=10)]
-        self.assertTrue(any("exactly 4 stories" in e for e in ml.validate_facts(six, news_items())))
+        self.assertEqual(len(ok["stories"]), 3)
+        self.assertEqual(ml.validate_facts(ok, news_items()), [])
+        four = ml_facts_answer()
+        four["stories"].append(dict(four["stories"][0], news_id=9, category="culture"))
+        self.assertTrue(any("exactly 3 stories" in e for e in ml.validate_facts(four, news_items())))
         same = ml_facts_answer()
-        for st, nid in zip(same["stories"], [1, 5, 9, 13]):  # كلها من المصدر نفسه
+        for st, nid in zip(same["stories"], [1, 5, 9]):  # كلها من المصدر نفسه
             st["news_id"] = nid
-        self.assertTrue(any("at least 3 different sources" in e for e in ml.validate_facts(same, news_items())))
+        self.assertTrue(any("at least 2 different sources" in e for e in ml.validate_facts(same, news_items())))
 
     def test_audio_budget_only_for_audio_levels(self):
         adv = ml_level_answer("advanced")
@@ -293,14 +294,14 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(set(lesson["levels"]), set(ml.LEVEL_ORDER))
         for level in ml.LEVEL_ORDER:
             v = lesson["levels"][level]
-            self.assertEqual(len(v["stories"]), 4)
+            self.assertEqual(len(v["stories"]), 3)
             self.assertEqual(len(v["words"]), 20)
             self.assertEqual(len(v["exercises"]), 3)
             self.assertNotIn("same_as", v)
             self.assertIn(f"{level} ", self.data(level))
         urls = {l: [s["url"] for s in lesson["levels"][l]["stories"]] for l in ml.LEVEL_ORDER}
         self.assertEqual(urls["beginner"], urls["advanced"])  # المصادر نفسها في كل المستويات
-        self.assertEqual(urls["beginner"], [i.url for i in news_items()[:4]])
+        self.assertEqual(urls["beginner"], [i.url for i in news_items()[:3]])
         self.assertIn('"2026-11-18"', self.data("beginner"))  # الأرشيف القديم باقٍ في كل مستوى
 
     def test_elevenlabs_for_all_levels_within_cap(self):
@@ -310,13 +311,13 @@ class PipelineTests(unittest.TestCase):
         self.assertNotIn("pending_audio", lesson)
         for level in ml.LEVEL_ORDER:
             audio = lesson["levels"][level]["audio"]
-            self.assertEqual(len(audio["stories"]), 4)
+            self.assertEqual(len(audio["stories"]), 3)
             self.assertTrue(all(audio["stories"]) and all(audio["words"]), level)  # لا شيء بصوت المتصفح
         used = sum(json.loads((self.tmp / "audio/usage.json").read_text()).values())
         self.assertLessEqual(used, dl.DAILY_MAX_CHARS)
         reused = [p for l in ml.LEVEL_ORDER for p in lesson["levels"][l]["audio"]["words"] if f"/{self.day}/{l}/" not in p]
         self.assertTrue(reused)  # كلمات مكررة بين المستويات أو مسجّلة سابقًا تعيد استخدام تسجيلها
-        self.assertEqual(len(self.spoken), 3 * (4 + 20) - len(reused))
+        self.assertEqual(len(self.spoken), 3 * (3 + 20) - len(reused))
         self.assertIn(f'const lessonDate="{self.day}"', self.data("advanced"))
 
     def test_new_lessons_stay_readable_by_previous_code(self):
@@ -344,7 +345,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(self.calls, ["facts", "intermediate"])
         lesson = json.loads(self.lesson_path.read_text(encoding="utf-8"))
         self.assertEqual(lesson["levels"]["beginner"]["same_as"], "intermediate")
-        self.assertLessEqual(len(self.spoken), 24)  # لا تسجيل مكرر: المستويات المنسوخة تعيد استخدام تسجيلات المتوسط
+        self.assertLessEqual(len(self.spoken), 23)  # لا تسجيل مكرر: المستويات المنسوخة تعيد استخدام تسجيلات المتوسط
         self.assertEqual(lesson["levels"]["beginner"]["audio"], lesson["levels"]["intermediate"]["audio"])
 
     def test_failed_level_falls_back_without_losing_the_day(self):

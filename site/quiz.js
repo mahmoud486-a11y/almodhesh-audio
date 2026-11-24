@@ -69,7 +69,10 @@
     const si = Math.floor(Math.random() * stories.length);
     qs.push({
       kind: "استماع", prompt: "استمع إلى الجملة، ثم اختر ترجمتها الصحيحة.", listen: si,
-      options: shuffle([stories[si].ar, ...pick(stories.map(s => s.ar), 3, stories[si].ar)]), answer: stories[si].ar
+      options: shuffle([stories[si].ar, ...(() => { const ans = stories[si].ar, same = pick(stories.map(s => s.ar), 3, ans);
+        // درس بأقل من أربعة أخبار: تُكمَّل الخيارات بترجمات من دروس سابقة
+        const others = Object.keys(lessons).filter(k => k !== activeKey).flatMap(k => lessons[k].stories.map(s => s.ar));
+        return [...same, ...pick(others.filter(a => !same.includes(a)), 3 - same.length, ans)]; })()]), answer: stories[si].ar
     });
     // سؤال: أكمل الفراغ
     const blanks = [];

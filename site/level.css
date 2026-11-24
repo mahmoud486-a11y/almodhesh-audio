@@ -1,0 +1,9 @@
+/* أزرار المستويات — بألوان الموقع ومتغيراته نفسها */
+.level-switch{display:flex;justify-content:center;gap:8px;margin:0 0 22px}
+.level-btn{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:118px;border:1px solid var(--line);background:var(--white);color:var(--ink);border-radius:30px;padding:9px 18px;font-size:16px;font-weight:800;line-height:1.3;cursor:pointer}
+.level-btn small{font-size:11px;font-weight:400;color:var(--muted);direction:ltr}
+.level-btn:hover{border-color:var(--gold)}
+.level-btn[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:white}
+.level-btn[aria-pressed="true"] small{color:#fffc}
+@media(max-width:650px){.level-switch{gap:6px}.level-btn{flex:1;min-width:0;padding:8px 6px;font-size:15px}.level-btn small{font-size:10px}}
+.quiz-q-ar{display:block;margin-top:8px;font-size:16px;font-weight:400;color:var(--muted)}

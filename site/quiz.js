@@ -12,6 +12,10 @@
   const pick = (arr, n, except) => shuffle(arr.filter(x => x !== except)).slice(0, n);
   const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
   const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // أسئلة فهم الخبر (في الدروس متعددة المستويات فقط): سؤالان إضافيان
+  const exercises = () => ((typeof lessons !== "undefined" && lessons[activeKey]) || {}).exercises || [];
+  const total = () => QUESTIONS + Math.min(2, exercises().length);
+  const bestKey = () => `quiz-best-${activeKey}` + (exercises().length && window.almodheshLevel ? `-${window.almodheshLevel}` : "");
 
   // ---------- السلسلة 🔥: أيام متتالية أُكمل فيها اختبار
   function streakInfo() {
@@ -85,7 +89,13 @@
       qs.push({ kind: "معنى الكلمة", prompt: `ما معنى كلمة <b dir="ltr">${en5}</b>؟`,
         options: shuffle([ar5, ...pick(meanings, 3, ar5)]), answer: ar5 });
     }
-    return qs.slice(0, QUESTIONS);
+    const out = qs.slice(0, QUESTIONS);
+    shuffle(exercises()).slice(0, 2).forEach(e => out.push({
+      kind: "فهم الخبر", ltr: true,
+      prompt: `<span dir="ltr" class="quiz-sentence">${e.question}</span><span class="quiz-q-ar">${e.question_ar}</span>`,
+      options: shuffle(e.options), answer: e.options[e.answer]
+    }));
+    return out;
   }
 
   // ---------- واجهة الاختبار
@@ -101,13 +111,13 @@
     return el;
   }
   function renderIntro() {
-    const best = store.get(`quiz-best-${activeKey}`, null);
+    const best = store.get(bestKey(), null);
     const { doneToday } = streakInfo();
     section().innerHTML = `
       <div class="section-title"><p class="eyebrow">تمرين قصير</p><h2>اختبار اليوم</h2></div>
       <article class="quiz-card">
-        <p class="quiz-lead">خمسة أسئلة من أخبار هذا الدرس وكلماته: معنى، استماع، وإكمال جملة.</p>
-        ${best !== null ? `<p class="quiz-best">أفضل نتيجة لك في هذا الدرس: <b>${best}/${QUESTIONS}</b></p>` : ""}
+        <p class="quiz-lead">${exercises().length ? "سبعة أسئلة من أخبار هذا الدرس وكلماته: معنى، استماع، إكمال جملة، وفهم الخبر." : "خمسة أسئلة من أخبار هذا الدرس وكلماته: معنى، استماع، وإكمال جملة."}</p>
+        ${best !== null ? `<p class="quiz-best">أفضل نتيجة لك في هذا الدرس: <b>${best}/${total()}</b></p>` : ""}
         <button type="button" class="quiz-start">${best !== null ? "↻ أعد الاختبار" : "ابدأ الاختبار"}</button>
         ${doneToday ? "" : `<p class="quiz-hint">🔥 أكمل اختبارًا اليوم لتحافظ على سلسلتك.</p>`}
       </article>`;
@@ -151,12 +161,12 @@
     section().querySelector(".quiz-next").hidden = false;
   }
   function finish() {
-    const key = `quiz-best-${activeKey}`;
+    const key = bestKey();
     store.set(key, Math.max(state.score, store.get(key, 0)));
     markToday();
     renderStreak();
     const { n } = streakInfo();
-    const msg = state.score === QUESTIONS ? "ممتاز! علامة كاملة 🎉" : state.score >= 3 ? "أحسنت! استمر هكذا." : "بداية جيدة؛ راجع الكلمات ثم أعد المحاولة.";
+    const msg = state.score === state.qs.length ? "ممتاز! علامة كاملة 🎉" : state.score >= 3 ? "أحسنت! استمر هكذا." : "بداية جيدة؛ راجع الكلمات ثم أعد المحاولة.";
     section().innerHTML = `
       <div class="section-title"><p class="eyebrow">اختبار اليوم</p><h2>النتيجة: ${state.score} من ${state.qs.length}</h2></div>
       <article class="quiz-card quiz-result">

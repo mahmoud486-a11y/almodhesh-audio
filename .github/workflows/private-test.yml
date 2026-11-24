@@ -1,0 +1,68 @@
+name: Private test lesson (upgrade preview)
+
+# درس تجريبي حقيقي واحد للترقية متعددة المستويات، للمراجعة فقط:
+# - يطبّق الترقية على نسخة مؤقتة داخل هذه التشغيلة فقط.
+# - لا يحفظ شيئًا في المستودع ولا ينشر الموقع (صلاحية قراءة فقط).
+# - النتيجة تُرفع كملف مراجعة (artifact) يُحذف تلقائيًا بعد 7 أيام.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: elevenlabs
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Apply the upgrade to this temporary copy only
+        run: git apply --3way .github/upgrade/multilevel.patch
+
+      - name: Install dependencies and run offline tests
+        run: |
+          pip install -q -r requirements.txt
+          python -m unittest discover -s tests
+
+      - name: Pick a test date (after the latest lesson, not Friday/Saturday)
+        id: day
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import datetime, pathlib, re
+          keys = sorted(p.stem for p in pathlib.Path("site/lessons").glob("*.json") if re.match(r"\d{4}-\d{2}-\d{2}$", p.stem))
+          d = datetime.date.fromisoformat(keys[-1]) + datetime.timedelta(days=1)
+          while d.weekday() in (4, 5):
+              d += datetime.timedelta(days=1)
+          print(f"date={d}")
+          PY
+
+      - name: Generate one real lesson (3 stories x 3 levels, ElevenLabs)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          LESSON_MODEL: ${{ vars.LESSON_MODEL }}
+          ELEVENLABS_LESSON_VOICE_ID: ${{ vars.ELEVENLABS_LESSON_VOICE_ID }}
+          ELEVENLABS_LESSON_MODEL_ID: ${{ vars.ELEVENLABS_LESSON_MODEL_ID }}
+        run: python scripts/daily_lesson.py run --date "${{ steps.day.outputs.date }}"
+
+      - name: Upload the preview for review (not published)
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: private-test-lesson
+          path: |
+            site/
+            logs/ai-usage.json
+            audio/usage.json
+          retention-days: 7

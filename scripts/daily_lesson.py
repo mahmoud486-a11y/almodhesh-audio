@@ -41,7 +41,7 @@ USAGE_PATH = ROOT / "audio" / "usage.json"  # سجل الاستهلاك اليو
 AI_USAGE_PATH = ROOT / "logs" / "ai-usage.json"
 TIMEZONE = "America/Toronto"
 
-DEFAULT_LESSON_MODEL = "claude-opus-5-5"
+DEFAULT_LESSON_MODEL = "claude-haiku-5-5"  # اقتصادي؛ يمكن تغييره عبر المتغير LESSON_MODEL
 # الأسعار بالدولار لكل مليون رمز (مدخلات، مخرجات) لتقدير التكلفة في السجل
 MODEL_PRICES = {
     "claude-opus-5-5": (4.00, 20.00),

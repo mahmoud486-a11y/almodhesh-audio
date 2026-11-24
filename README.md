@@ -40,7 +40,7 @@
 |---|---|---|
 | `ELEVENLABS_API_KEY` | Secret | مفتاح ElevenLabs (صلاحيات: Text to Speech، User → Read، و Speech History → Read لتحديد الصوت) |
 | `ANTHROPIC_API_KEY` | Secret | مفتاح Claude لإعداد الدروس |
-| `LESSON_MODEL` | Variable | نموذج Claude (الافتراضي `claude-opus-5-5`؛ الأوفر `claude-haiku-5-5`) |
+| `LESSON_MODEL` | Variable | نموذج Claude (الافتراضي الاقتصادي `claude-haiku-5-5`؛ للجودة الأعلى `claude-sonnet-5-5`) |
 | `ELEVENLABS_LESSON_VOICE_ID` | Variable | معرّف الصوت الأمريكي |
 | `ELEVENLABS_LESSON_MODEL_ID` | Variable | نموذج ElevenLabs (الافتراضي `eleven_multilingual_v2`) |
 

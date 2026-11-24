@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f4eddb">
+  <title>المدهش — تعلّم الإنجليزية من الأخبار</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="enhancements.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><strong>المدهش</strong><span>لتعلّم الإنجليزية</span><small>أخبار تصنع تقدّمك</small></div>
+    <nav><button class="nav active" data-view="today">اليوم</button><button class="nav" data-view="cards">الكلمات</button><button class="nav" data-view="archive">الأرشيف</button></nav>
+  </header>
+
+  <main>
+    <section id="today" class="view active">
+      <div class="hero">
+        <p class="eyebrow">درس اليوم · <span id="date"></span></p>
+        <h1>تعلّم الإنجليزية من أهم أخبار اليوم</h1>
+        <p>ستة أخبار مبسّطة، ترجمة عربية، نطق أمريكي، وكلمات جديدة في درس واحد.</p>
+        <div class="stats"><span><b id="heard">0</b>/6 جمل</span><span><b id="learned">0</b>/20 كلمة</span><span>المستوى A2–B1</span></div>
+      </div>
+
+      <div class="lesson-head"><div><span class="number" id="storyNo">1</span><h2 id="topic">خبر اليوم الأول</h2></div><span id="progress">1 من 6</span></div>
+      <article class="lesson-card">
+        <a id="source" class="source" href="#" target="_blank" rel="noopener">مصدر موثوق · ملخص تعليمي مستقل ↗</a>
+        <h3 id="english">Today’s lesson will appear here after the daily update.</h3>
+        <div id="addWordPanel" class="add-word-panel" hidden>
+          <strong id="selectedWord"></strong>
+          <input id="wordTranslation" type="text" dir="rtl" readonly placeholder="تظهر الترجمة العربية تلقائياً">
+          <button id="addWordToCards" type="button">＋ أضف إلى الكروت</button>
+          <span id="addWordStatus" aria-live="polite"></span>
+        </div>
+        <p id="arabic" class="arabic">سيظهر درس اليوم هنا بعد التحديث اليومي.</p>
+        <div class="controls">
+          <button id="play">▶ استمع</button><button id="slow">◷ بطيء</button><button id="verySlow">◷ بطيء جداً</button><button id="ultraSlow">◷ بطيء للغاية</button><button id="repeat">↻ كرّر 3 مرات</button><button id="pauseResume">⏸ توقيف مؤقت</button><button id="done">✓ فهمتها</button>
+        </div>
+        <div class="numbers" id="numbers"></div>
+      </article>
+      <button id="next" class="next">الخبر التالي ←</button>
+      <p class="notice">المحتوى ملخّص تعليمي مستقل. تُذكر المصادر للمراجعة ولا يعني ذلك وجود شراكة أو اعتماد.</p>
+      <section class="sentence-summary">
+        <div class="section-title"><p class="eyebrow">قائمة الدرس</p><h2>الأخبار الستة</h2></div>
+        <button id="playAll20" class="play-all-20">🔊 استمع إلى الأخبار الستة ×20</button>
+        <div id="sentenceList" class="sentence-list"></div>
+      </section>
+    </section>
+
+    <section id="cards" class="view">
+      <div class="section-title"><p class="eyebrow">مفردات اليوم</p><h1>20 كلمة جديدة</h1></div>
+      <div id="wordGrid" class="word-grid"></div>
+    </section>
+
+    <section id="archive" class="view">
+      <div class="section-title"><p class="eyebrow">تقدّمك</p><h1>أرشيف الدروس</h1></div>
+      <div id="archiveList" class="archive-list"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

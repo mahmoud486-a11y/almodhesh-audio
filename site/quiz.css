@@ -23,3 +23,13 @@
 .quiz-feedback{min-height:24px;margin:14px 0 0;font-weight:700;color:#544e47}
 .quiz-score{font-size:22px;font-weight:800;margin:0 0 10px}
 @media(max-width:650px){.quiz-card{padding:20px}.quiz h2{font-size:28px}.quiz-options{grid-template-columns:1fr}.quiz-prompt{font-size:19px}.quiz-sentence{font-size:20px}}
+
+/* زر تثبيت التطبيق */
+.install-banner{display:flex;align-items:center;gap:14px;background:var(--white);border:1px solid var(--line);border-radius:20px;padding:14px 16px;margin:18px 0 0;box-shadow:0 8px 24px #5b492012}
+.install-banner img{border-radius:11px;flex:none}
+.install-text{flex:1;display:grid;gap:3px;line-height:1.5}
+.install-text strong{font-size:16px}
+.install-text span{font-size:13px;color:var(--muted)}
+.install-go{flex:none;border:0;border-radius:30px;background:var(--gold);color:white;padding:11px 18px;font-weight:800;cursor:pointer;font-size:15px}
+.install-close{flex:none;width:32px;height:32px;border:0;border-radius:50%;background:#eee8dc;color:var(--muted);font-size:18px;line-height:1;padding:0;cursor:pointer}
+@media(max-width:650px){.install-banner{flex-wrap:wrap}.install-go{order:3;width:100%}}

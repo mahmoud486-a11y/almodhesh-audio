@@ -16,13 +16,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    # النشر من الفرع الافتراضي فقط
+  # الرفع والنشر في مهمتين منفصلتين (الترتيب الذي توصي به GitHub)، حتى يكون ملف الموقع
+  # المرفوع جاهزًا ومُسجّلًا قبل أن تبحث عنه خطوة النشر.
+  build:
     if: ${{ github.event_name != 'push' || github.ref_name == github.event.repository.default_branch }}
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,5 +29,13 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v4

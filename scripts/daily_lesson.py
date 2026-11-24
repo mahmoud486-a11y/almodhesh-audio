@@ -63,20 +63,31 @@ WEEKDAYS_AR = ["الاثنين", "الثلاثاء", "الأربعاء", "الخ
 MONTHS_AR = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو",
              "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
 
-# مصادر رسمية ووكالات معروفة لها خلاصات RSS/Atom عامة
+# سياسة الأخبار: منطقة الشرق الأوسط وشمال أفريقيا (MENA) من مصادر إخبارية موثوقة لها خلاصات RSS عامة.
+# المصدر المعطّل يُتخطى تلقائيًا ولا يوقف الدرس.
 FEEDS = [
-    ("https://news.un.org/feed/subscribe/en/news/all/rss.xml", "الأمم المتحدة"),
-    ("https://www.who.int/rss-feeds/news-english.xml", "منظمة الصحة العالمية"),
-    ("https://www.nasa.gov/news-release/feed/", "ناسا"),
-    ("https://www.esa.int/rssfeed/TopNews", "وكالة الفضاء الأوروبية"),
-    ("https://feeds.bbci.co.uk/news/world/rss.xml", "بي بي سي"),
-    ("https://feeds.bbci.co.uk/news/science_and_environment/rss.xml", "بي بي سي"),
-    ("https://feeds.bbci.co.uk/news/technology/rss.xml", "بي بي سي"),
-    ("https://feeds.npr.org/1001/rss.xml", "إن بي آر"),
-    ("https://www.cbc.ca/webfeed/rss/rss-topstories", "سي بي سي"),
-    ("https://www.cbc.ca/webfeed/rss/rss-canada", "سي بي سي"),
-    ("https://www.sciencedaily.com/rss/top/science.xml", "ساينس ديلي"),
+    ("https://feeds.bbci.co.uk/news/world/middle_east/rss.xml", "بي بي سي"),
+    ("https://feeds.bbci.co.uk/news/world/africa/rss.xml", "بي بي سي"),
+    ("https://news.un.org/feed/subscribe/en/news/region/middle-east/feed/rss.xml", "أخبار الأمم المتحدة"),
+    ("https://news.un.org/feed/subscribe/en/news/region/africa/feed/rss.xml", "أخبار الأمم المتحدة"),
+    ("https://www.aljazeera.com/xml/rss/all.xml", "الجزيرة الإنجليزية"),
+    ("https://www.arabnews.com/rss.xml", "عرب نيوز"),
+    ("https://www.thenationalnews.com/arc/outboundfeeds/rss/?outputType=xml", "ذا ناشيونال"),
+    ("https://english.aawsat.com/feed", "الشرق الأوسط"),
+    ("https://www.moroccoworldnews.com/feed", "موروكو وورلد نيوز"),
+    ("https://www.egyptindependent.com/feed/", "إيجيبت إندبندنت"),
+    ("https://english.ahram.org.eg/rss/ahram.aspx", "الأهرام أونلاين"),
+    ("https://www.al-monitor.com/rss", "المونيتور"),
 ]
+
+MENA_COUNTRIES = [
+    "Algeria", "Bahrain", "Egypt", "Iran", "Iraq", "Israel", "Jordan", "Kuwait", "Lebanon", "Libya",
+    "Mauritania", "Morocco", "Oman", "Palestine", "Qatar", "Saudi Arabia", "Sudan", "Syria", "Tunisia",
+    "Turkey", "United Arab Emirates", "Yemen", "MENA region",
+]
+CATEGORIES = ["economy", "technology", "health", "education", "science", "sport", "culture", "major event"]
+MIN_CATEGORIES = 4          # تنويع إلزامي: أربعة مجالات مختلفة على الأقل
+MAX_MAJOR_EVENTS = 1        # خبر واحد كحد أقصى عن الأحداث الكبرى/السياسة/النزاعات
 
 TOKEN_EDGE = re.compile(r"^[^A-Za-zÀ-ÿ]+|[^A-Za-zÀ-ÿ'-]+$")  # نفس قاعدة الموقع في app.js
 ARABIC = re.compile(r"[؀-ۿ]")
@@ -223,11 +234,13 @@ LESSON_SCHEMA = {
                 "type": "object",
                 "properties": {
                     "news_id": {"type": "integer"},
+                    "category": {"type": "string", "enum": CATEGORIES},
+                    "country": {"type": "string", "enum": MENA_COUNTRIES},
                     "topic": {"type": "string"},
                     "en": {"type": "string"},
                     "ar": {"type": "string"},
                 },
-                "required": ["news_id", "topic", "en", "ar"],
+                "required": ["news_id", "category", "country", "topic", "en", "ar"],
                 "additionalProperties": False,
             },
         },
@@ -256,18 +269,22 @@ LESSON_SCHEMA = {
 
 SYSTEM_PROMPT = """You write the daily lesson for "Almodhesh" (المدهش), a website where Arabic speakers learn American English from today's news at CEFR level A2–B1.
 
-From the numbered news list, choose exactly 6 stories:
-- recent, factual, and from different sources and topics (for example science, space, health, environment, technology, economy, Canada, world, education, sport);
-- avoid graphic violence and sensational or opinion pieces; keep politics neutral and factual.
+From the numbered news list, choose exactly 6 stories. Selection policy (mandatory):
+- Every story must be about the Middle East and North Africa (MENA): it must happen in, or directly concern, a MENA country. Set "country" to that country, or "MENA region" for a story about several of them.
+- Make the lesson varied and useful: cover at least 4 different categories from economy, technology, health, education, science, sport, culture and major event. Prefer positive, practical and human-interest news: business and jobs, innovation, health care, schools and universities, research, sports results, arts, heritage, travel and food.
+- Use the category "major event" for wars, conflicts, attacks, elections, diplomacy and other political news. Include at most ONE such story, only if it is truly major, and describe it neutrally without graphic details.
+- Avoid opinion pieces, rumors, crime stories and sensational news. Prefer different sources and different countries.
+- Every fact must come from the chosen item. Never invent details.
 
 For each story write:
 - "news_id": the number of the item you used. Every fact must come from that item only. Never invent details.
+- "category" and "country": as defined in the selection policy.
 - "en": ONE simple American English sentence that states the main fact, 60–115 characters, ending with a period. Use common words, present or past simple, American spelling. Spell numbers as digits or simple words.
 - "ar": a natural Modern Standard Arabic translation of that sentence.
 - "topic": a short Arabic title of 2–4 words.
 
 Then:
-- "words": exactly 20 useful vocabulary words. Each "en" must be a single word copied exactly as it appears inside one of your 6 sentences (lowercase unless a proper noun). Prefer verbs, nouns and adjectives a learner needs; no "the", "a", "and", or names unless important. "ar": its Arabic meaning in that sentence.
+- "words": exactly 20 useful vocabulary words related to today's news. Each "en" must be a single word copied exactly as it appears inside one of your 6 sentences (lowercase unless a proper noun). Prefer verbs, nouns and adjectives a learner needs; no "the", "a", "and", or names unless important. "ar": its Arabic meaning in that sentence.
 - "translations": an Arabic gloss for EVERY distinct word in the 6 sentences (lowercase "word" exactly as it appears without surrounding punctuation, keeping apostrophes and hyphens, e.g. "nasa's", "long-term").
 - "archive_title": the 6 topics as short Arabic categories joined with "، " and "و" before the last, e.g. "بيئة، فضاء، سلامة، صحة، تقنية وقوانين".
 
@@ -334,6 +351,17 @@ def validate_lesson(data: dict, items: list[NewsItem], budget: int, known: dict)
             errors.append(f"story {n}: English sentence contains Arabic")
         if not ARABIC.search(s.get("ar", "")) or not ARABIC.search(s.get("topic", "")):
             errors.append(f"story {n}: Arabic translation/topic missing")
+    for n, s in enumerate(stories, 1):
+        if s.get("country") not in MENA_COUNTRIES:
+            errors.append(f"story {n}: must be about a MENA country (got {s.get('country')!r})")
+        if s.get("category") not in CATEGORIES:
+            errors.append(f"story {n}: invalid category {s.get('category')!r}")
+    cats = [s.get("category") for s in stories]
+    if len(set(cats)) < MIN_CATEGORIES:
+        errors.append(f"use at least {MIN_CATEGORIES} different categories (got {len(set(cats))}: {', '.join(sorted(set(map(str, cats))))})")
+    if cats.count("major event") > MAX_MAJOR_EVENTS:
+        errors.append(f"at most {MAX_MAJOR_EVENTS} 'major event' story (wars, conflicts, politics); replace the others "
+                      "with economy, technology, health, education, science, sport or culture news")
     sentence_tokens = {t for s in stories for t in tokens(s.get("en", ""))}
     if len(words) != WORDS:
         errors.append(f"need exactly {WORDS} words, got {len(words)}")

@@ -32,8 +32,9 @@ def model_answer(base=REAL_LESSON):
     trans = json.loads((ROOT / "site/lessons/_base-translations.json").read_text(encoding="utf-8"))
     return {
         "archive_title": base["archive_title"],
-        "stories": [{"news_id": i, "topic": s["topic"], "en": s["en"], "ar": s["ar"]}
-                    for i, s in enumerate(base["stories"], 1)],
+        "stories": [{"news_id": i, "category": c, "country": "Egypt", "topic": s["topic"], "en": s["en"], "ar": s["ar"]}
+                    for i, (s, c) in enumerate(zip(base["stories"], ["science", "economy", "health", "culture",
+                                                                       "sport", "technology"]), 1)],
         "words": [{"en": w[0], "ar": w[1]} for w in base["words"]],
         "translations": [{"word": k, "ar": v} for k, v in trans.items()],
     }
@@ -81,6 +82,25 @@ class ValidationTests(unittest.TestCase):
         self.assertIn("news_id 999", joined)
         self.assertIn("story 2", joined)
         self.assertIn("notinsentences", joined)
+
+    def test_mena_policy_enforced(self):
+        bad = model_answer()
+        bad["stories"][0]["country"] = "Canada"
+        for s in bad["stories"][1:4]:
+            s["category"] = "major event"
+        joined = " | ".join(dl.validate_lesson(bad, news_items(), 1000, {}))
+        self.assertIn("story 1: must be about a MENA country", joined)
+        self.assertIn("at most 1 'major event'", joined)
+
+    def test_variety_enforced(self):
+        bad = model_answer()
+        for s in bad["stories"]:
+            s["category"] = "economy"
+        self.assertTrue(any("at least 4 different categories" in e for e in dl.validate_lesson(bad, news_items(), 1000, {})))
+
+    def test_policy_fields_not_stored_in_lesson(self):
+        lesson = dl.to_lesson(model_answer(), news_items(), datetime(2026, 11, 25, tzinfo=ZoneInfo(dl.TIMEZONE)))
+        self.assertEqual(set(lesson["stories"][0]), {"topic", "en", "ar", "source", "url"})
 
     def test_budget_enforced(self):
         errors = dl.validate_lesson(model_answer(), news_items(), 500, {})

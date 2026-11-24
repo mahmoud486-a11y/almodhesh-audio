@@ -1,0 +1,136 @@
+{
+ "key": "2026-11-20",
+ "date": "الجمعة، 20 نوفمبر 2026",
+ "archive_date": "20 نوفمبر 2026",
+ "archive_title": "تجارة، فضاء، صحة، طقس وأمان رقمي",
+ "stories": [
+  {
+   "topic": "توسيع تجارة كندا",
+   "en": "Canada and Ontario will announce investments to help Canada trade with more markets.",
+   "ar": "ستعلن كندا وأونتاريو عن استثمارات لمساعدة كندا على التجارة مع مزيد من الأسواق.",
+   "source": "وزارة النقل الكندية · 20 نوفمبر 2026",
+   "url": "https://www.canada.ca/en/transport-canada/news/2026/11/minister-of-transport-steven-mackinnon-and-ontarios-minister-of-transportation-prabmeet-singh-sarkaria-to-announce-investments-to-support-trade-div.html"
+  },
+  {
+   "topic": "فوياجر على بُعد يوم ضوئي",
+   "en": "Voyager One reached a distance from Earth that light needs one full day to cross.",
+   "ar": "وصلت فوياجر 1 إلى مسافة من الأرض يحتاج الضوء إلى يوم كامل لعبورها.",
+   "source": "ناسا · 19 نوفمبر 2026",
+   "url": "https://www.nasa.gov/news-release/nasas-voyager-1-makes-history-reaching-one-light-day-from-earth/"
+  },
+  {
+   "topic": "مقاومة الأدوية",
+   "en": "The World Health Organization says more countries have plans to fight drug-resistant infections, but many patients still lack tests and treatment.",
+   "ar": "تقول منظمة الصحة العالمية إن مزيداً من الدول لديها خطط لمكافحة العدوى المقاومة للأدوية، لكن كثيراً من المرضى ما زالوا يفتقرون إلى الفحوص والعلاج.",
+   "source": "منظمة الصحة العالمية · 16 نوفمبر 2026",
+   "url": "https://www.who.int/news/item/16-11-2026-more-countries-have-antimicrobial-resistance-plans-but-patients-still-lack-testing-and-treatment"
+  },
+  {
+   "topic": "هيرا تدرس كويكبين",
+   "en": "The European Space Agency's Hera spacecraft is now circling two asteroids and collecting new data for planetary defense.",
+   "ar": "تدور مركبة هيرا التابعة لوكالة الفضاء الأوروبية الآن حول كويكبين وتجمع بيانات جديدة للدفاع الكوكبي.",
+   "source": "وكالة الفضاء الأوروبية · 11 نوفمبر 2026",
+   "url": "https://www.esa.int/articles/about-us/directorates/operations/space-safety/hera/hera-spacecraft-in-rectangular-orbit-around-target-asteroids"
+  },
+  {
+   "topic": "توقعات جوية أسرع",
+   "en": "NOAA launched a weather system that updates every hour and can improve short-term forecasts across North America.",
+   "ar": "أطلقت الإدارة الوطنية للمحيطات والغلاف الجوي نظاماً جوياً يُحدَّث كل ساعة ويمكنه تحسين التوقعات القصيرة الأجل في أنحاء أمريكا الشمالية.",
+   "source": "NOAA · 5 نوفمبر 2026",
+   "url": "https://www.noaa.gov/news-release/noaa-weather-modeling-hits-key-milestone-with-rapid-refresh-forecast-system-debut"
+  },
+  {
+   "topic": "حماية الأطفال على الإنترنت",
+   "en": "The European Commission proposed new rules to make social media safer for children in the European Union.",
+   "ar": "اقترحت المفوضية الأوروبية قواعد جديدة لجعل وسائل التواصل الاجتماعي أكثر أماناً للأطفال في الاتحاد الأوروبي.",
+   "source": "المفوضية الأوروبية · 19 نوفمبر 2026",
+   "url": "https://ec.europa.eu/commission/presscorner/detail/en/ip_26_1890"
+  }
+ ],
+ "words": [
+  [
+   "investments",
+   "استثمارات"
+  ],
+  [
+   "trade",
+   "يتاجر"
+  ],
+  [
+   "markets",
+   "أسواق"
+  ],
+  [
+   "reached",
+   "وصل"
+  ],
+  [
+   "distance",
+   "مسافة"
+  ],
+  [
+   "light",
+   "ضوء"
+  ],
+  [
+   "countries",
+   "دول"
+  ],
+  [
+   "fight",
+   "يكافح"
+  ],
+  [
+   "drug-resistant",
+   "مقاوم للأدوية"
+  ],
+  [
+   "infections",
+   "عدوى"
+  ],
+  [
+   "patients",
+   "مرضى"
+  ],
+  [
+   "treatment",
+   "علاج"
+  ],
+  [
+   "spacecraft",
+   "مركبة فضائية"
+  ],
+  [
+   "circling",
+   "يدور حول"
+  ],
+  [
+   "asteroids",
+   "كويكبات"
+  ],
+  [
+   "defense",
+   "دفاع"
+  ],
+  [
+   "launched",
+   "أطلق"
+  ],
+  [
+   "updates",
+   "يُحدّث"
+  ],
+  [
+   "forecasts",
+   "توقعات"
+  ],
+  [
+   "safer",
+   "أكثر أماناً"
+  ]
+ ],
+ "audio": {
+  "stories": null,
+  "words": null
+ }
+}

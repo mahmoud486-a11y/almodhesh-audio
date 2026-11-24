@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+"""يبني site/lessons-data.js من ملفات الدروس site/lessons/YYYY-MM-DD.json.
+
+الملف الناتج يعرّف المتغيرات نفسها التي كان app.js الأصلي يعرّفها في أوله
+(lessonDate, stories, words, lessons, lessonAudio, lessonWordAudio, archive,
+automaticTranslations)، فيبقى منطق الموقع في app.js دون أي تعديل.
+"""
+from __future__ import annotations
+
+import json
+import re
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+SITE = ROOT / "site"
+LESSONS_DIR = SITE / "lessons"
+OUTPUT = SITE / "lessons-data.js"
+BASE_TRANSLATIONS = LESSONS_DIR / "_base-translations.json"
+KEY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def load_lessons(lessons_dir: Path = LESSONS_DIR) -> list[dict]:
+    lessons = []
+    for path in sorted(lessons_dir.glob("*.json")):
+        if not KEY_RE.match(path.stem):
+            continue
+        lesson = json.loads(path.read_text(encoding="utf-8"))
+        if lesson.get("key") != path.stem:
+            raise ValueError(f"{path.name}: key لا يطابق اسم الملف")
+        lessons.append(lesson)
+    lessons.sort(key=lambda l: l["key"], reverse=True)  # الأحدث أولًا
+    if not lessons:
+        raise ValueError("لا توجد دروس")
+    return lessons
+
+
+def merged_translations(lessons: list[dict], base_path: Path = BASE_TRANSLATIONS) -> dict:
+    merged = json.loads(base_path.read_text(encoding="utf-8")) if base_path.exists() else {}
+    # من الأقدم إلى الأحدث، ولا تُستبدل ترجمة موجودة حتى لا يتغير عرض الدروس السابقة
+    for lesson in reversed(lessons):
+        for word, ar in lesson.get("translations", {}).items():
+            merged.setdefault(word.lower(), ar)
+    return merged
+
+
+def js(value) -> str:
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
+
+def render(lessons: list[dict], translations: dict) -> str:
+    latest = lessons[0]["key"]
+    lessons_obj = {
+        l["key"]: {"date": l["date"], "stories": l["stories"], "words": l["words"]} for l in lessons
+    }
+    lesson_audio, word_audio = {}, {}
+    for l in lessons:
+        audio = l.get("audio") or {}
+        if audio.get("stories"):
+            lesson_audio[l["key"]] = audio["stories"]
+        if audio.get("words"):
+            word_audio[l["key"]] = audio["words"]
+    archive = [
+        {"key": l["key"], "date": l["archive_date"], "title": l["archive_title"], "count": len(l["stories"])}
+        for l in lessons
+    ]
+    return (
+        "// ملف مُولَّد تلقائيًا من site/lessons/*.json بواسطة scripts/build_site_data.py — لا تعدّله يدويًا.\n"
+        f"const lessonDate={js(latest)};\n"
+        f"const lessons={js(lessons_obj)};\n"
+        "const stories=lessons[lessonDate].stories;\n"
+        "const words=lessons[lessonDate].words;\n"
+        f"const automaticTranslations={js(translations)};\n"
+        f"const lessonAudio={js(lesson_audio)};\n"
+        f"const lessonWordAudio={js(word_audio)};\n"
+        f"const archive={js(archive)};\n"
+    )
+
+
+def build(lessons_dir: Path = LESSONS_DIR, output: Path = OUTPUT) -> str:
+    lessons = load_lessons(lessons_dir)
+    text = render(lessons, merged_translations(lessons, lessons_dir / "_base-translations.json"))
+    output.write_text(text, encoding="utf-8")
+    return lessons[0]["key"]
+
+
+if __name__ == "__main__":
+    print(f"تم بناء {OUTPUT.relative_to(ROOT)} — أحدث درس: {build()}")

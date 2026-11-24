@@ -1,0 +1,247 @@
+{
+ "key": "2026-11-24",
+ "date": "الثلاثاء، 24 نوفمبر 2026",
+ "archive_date": "24 نوفمبر 2026",
+ "archive_title": "أجور، صحة، محمية، فن، رياضة وخدمات مالية",
+ "stories": [
+  {
+   "topic": "دعم أجور للعاملين",
+   "en": "Saudi Arabia approved three months of wage support for Saudi workers at eligible businesses.",
+   "ar": "وافقت السعودية بأمر ملكي على دعم أجور لثلاثة أشهر للعاملين السعوديين في المنشآت المؤهلة.",
+   "source": "الشرق الأوسط · 24 نوفمبر 2026",
+   "url": "https://english.aawsat.com/node/5345041"
+  },
+  {
+   "topic": "ارتفاع حالات السحايا",
+   "en": "Gaza health officials say meningitis cases rose to 272 in October, more than eight times the typical rate.",
+   "ar": "قال مسؤولون صحيون في غزة إن حالات التهاب السحايا ارتفعت إلى 272 حالة في أكتوبر، أي أكثر من ثمانية أضعاف المعدل المعتاد.",
+   "source": "الجزيرة الإنجليزية · 24 نوفمبر 2026",
+   "url": "https://www.aljazeera.com/news/2026/11/24/israeli-air-strikes-in-gaza-kill-7-as-doctors-warn-of-meningitis-outbreak?traffic_source=rss"
+  },
+  {
+   "topic": "محمية حرة الرص",
+   "en": "A Saudi nature reserve was registered in a world database of protected areas.",
+   "ar": "سُجلت محمية طبيعية سعودية في قاعدة البيانات العالمية للمناطق المحمية.",
+   "source": "الشرق الأوسط · 24 نوفمبر 2026",
+   "url": "https://english.aawsat.com/node/5345028"
+  },
+  {
+   "topic": "معرض أبوظبي للفن",
+   "en": "Six galleries each reported more than one million dollars in sales at the first art fair in Abu Dhabi.",
+   "ar": "أعلنت ستة معارض فنية أن مبيعاتها تجاوزت مليون دولار لكل منها في أول معرض فني في أبوظبي.",
+   "source": "ذا ناشيونال · 24 نوفمبر 2026",
+   "url": "https://www.thenationalnews.com/arts-culture/art-design/2026/11/24/frieze-abu-dhabi-six-galleries-report-more-than-12m-each-in-sales-at-inaugural-fair/"
+  },
+  {
+   "topic": "قضية كأس أفريقيا",
+   "en": "A sports court will soon rule on whether Senegal must give up its Africa Cup of Nations title.",
+   "ar": "ستصدر محكمة التحكيم الرياضي قريباً حكمها بشأن ما إذا كان على السنغال التخلي عن لقب كأس أمم أفريقيا.",
+   "source": "بي بي سي · 23 نوفمبر 2026",
+   "url": "https://www.bbc.co.uk/sport/football/articles/ckjw5jj2l26lo?at_medium=RSS&at_campaign=rss"
+  },
+  {
+   "topic": "مركز مالي في عُمان",
+   "en": "Oman's new financial centre has registered its first companies before opening.",
+   "ar": "سجّل المركز المالي الجديد في عُمان شركاته الأولى قبل افتتاحه.",
+   "source": "ذا ناشيونال · 24 نوفمبر 2026",
+   "url": "https://www.thenationalnews.com/business/economy/2026/11/24/omans-new-financial-centre-registers-first-companies-as-it-prepares-to-open/"
+  }
+ ],
+ "words": [
+  [
+   "approved",
+   "وافقت"
+  ],
+  [
+   "support",
+   "دعم"
+  ],
+  [
+   "workers",
+   "عمال"
+  ],
+  [
+   "businesses",
+   "منشآت"
+  ],
+  [
+   "officials",
+   "مسؤولون"
+  ],
+  [
+   "cases",
+   "حالات"
+  ],
+  [
+   "rose",
+   "ارتفعت"
+  ],
+  [
+   "typical",
+   "معتاد"
+  ],
+  [
+   "reserve",
+   "محمية"
+  ],
+  [
+   "registered",
+   "سُجلت"
+  ],
+  [
+   "database",
+   "قاعدة بيانات"
+  ],
+  [
+   "protected",
+   "محمية"
+  ],
+  [
+   "galleries",
+   "معارض"
+  ],
+  [
+   "reported",
+   "أعلنت"
+  ],
+  [
+   "sales",
+   "مبيعات"
+  ],
+  [
+   "sports",
+   "رياضية"
+  ],
+  [
+   "rule",
+   "تصدر حكماً"
+  ],
+  [
+   "financial",
+   "مالي"
+  ],
+  [
+   "companies",
+   "شركات"
+  ],
+  [
+   "opening",
+   "افتتاح"
+  ]
+ ],
+ "translations": {
+  "saudi": "سعودي",
+  "arabia": "العربية",
+  "approved": "وافقت",
+  "three": "ثلاثة",
+  "months": "أشهر",
+  "of": "من",
+  "wage": "أجور",
+  "support": "دعم",
+  "for": "لـ",
+  "workers": "عمال",
+  "at": "في",
+  "eligible": "المؤهلة",
+  "businesses": "منشآت",
+  "gaza": "غزة",
+  "health": "صحة",
+  "officials": "مسؤولون",
+  "say": "يقولون",
+  "meningitis": "التهاب السحايا",
+  "cases": "حالات",
+  "rose": "ارتفعت",
+  "to": "إلى",
+  "272": "٢٧٢",
+  "in": "في",
+  "october": "أكتوبر",
+  "more": "أكثر",
+  "than": "من",
+  "eight": "ثمانية",
+  "times": "أضعاف",
+  "the": "ال",
+  "typical": "معتاد",
+  "rate": "معدل",
+  "a": "لا تُترجم",
+  "nature": "الطبيعة",
+  "reserve": "محمية",
+  "was": "تم",
+  "registered": "سُجلت",
+  "world": "العالم",
+  "database": "قاعدة بيانات",
+  "protected": "المحمية",
+  "areas": "مناطق",
+  "six": "ستة",
+  "galleries": "معارض",
+  "each": "كل",
+  "reported": "أعلنت",
+  "one": "واحد",
+  "million": "مليون",
+  "dollars": "دولارات",
+  "sales": "مبيعات",
+  "first": "أول",
+  "art": "فني",
+  "fair": "معرض",
+  "abu": "أبو",
+  "dhabi": "ظبي",
+  "sports": "رياضي",
+  "court": "محكمة",
+  "will": "سوف",
+  "soon": "قريباً",
+  "rule": "تصدر حكماً",
+  "on": "بشأن",
+  "whether": "ما إذا كان",
+  "senegal": "السنغال",
+  "must": "يجب",
+  "give": "يتخلى",
+  "up": "عن",
+  "its": "لها",
+  "africa": "أفريقيا",
+  "cup": "كأس",
+  "nations": "أمم",
+  "title": "لقب",
+  "oman's": "عُمان",
+  "new": "الجديد",
+  "financial": "مالي",
+  "centre": "مركز",
+  "has": "قد",
+  "companies": "شركات",
+  "before": "قبل",
+  "opening": "افتتاح"
+ },
+ "audio": {
+  "stories": [
+   "audio/2026-11-24/news-1.mp3",
+   "audio/2026-11-24/news-2.mp3",
+   "audio/2026-11-24/news-3.mp3",
+   "audio/2026-11-24/news-4.mp3",
+   "audio/2026-11-24/news-5.mp3",
+   "audio/2026-11-24/news-6.mp3"
+  ],
+  "words": [
+   "audio/2026-11-24/words/word-01.mp3",
+   "audio/2026-11-24/words/word-02.mp3",
+   "audio/2026-11-24/words/word-03.mp3",
+   "audio/2026-11-24/words/word-04.mp3",
+   "audio/2026-11-24/words/word-05.mp3",
+   "audio/2026-11-24/words/word-06.mp3",
+   "audio/2026-11-24/words/word-07.mp3",
+   "audio/2026-11-24/words/word-08.mp3",
+   "audio/2026-11-24/words/word-09.mp3",
+   "audio/2026-11-24/words/word-10.mp3",
+   "audio/2026-11-24/words/word-11.mp3",
+   "audio/2026-11-24/words/word-12.mp3",
+   "audio/2026-11-24/words/word-13.mp3",
+   "audio/2026-11-24/words/word-14.mp3",
+   "audio/2026-11-24/words/word-15.mp3",
+   "audio/2026-11-24/words/word-16.mp3",
+   "audio/2026-11-24/words/word-17.mp3",
+   "audio/2026-11-24/words/word-18.mp3",
+   "audio/2026-11-24/words/word-19.mp3",
+   "audio/2026-11-24/words/word-20.mp3"
+  ]
+ },
+ "generated": {
+  "by": "claude",
+  "at": "2026-11-24T11:43:42Z"
+ }
+}

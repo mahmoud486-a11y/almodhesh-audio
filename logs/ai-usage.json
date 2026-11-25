@@ -14,5 +14,13 @@
   "output_tokens": 10112,
   "model": "claude-haiku-5-5",
   "est_cost_usd": 0.006
+ },
+ {
+  "date": "2026-11-25",
+  "attempt": 1,
+  "input_tokens": 10618,
+  "output_tokens": 14495,
+  "model": "claude-haiku-5-5",
+  "est_cost_usd": 0.00831
  }
 ]

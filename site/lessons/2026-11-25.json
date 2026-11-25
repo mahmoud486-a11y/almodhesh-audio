@@ -1,0 +1,233 @@
+{
+ "key": "2026-11-25",
+ "date": "الأربعاء، 25 نوفمبر 2026",
+ "archive_date": "25 نوفمبر 2026",
+ "archive_title": "سباعيات دبي، ومنصة حكومية بالذكاء الاصطناعي، وفائض تجاري سعودي، وقابلة تفرّ من القتال، وبعثة يونانية في الإسكندرية، ونجم البوب التركي",
+ "stories": [
+  {
+   "topic": "سباعيات دبي",
+   "en": "New Zealand aim to lift spirits at the Dubai Sevens in the UAE.",
+   "ar": "تسعى نيوزيلندا إلى رفع المعنويات في سباعيات دبي في الإمارات.",
+   "source": "ذا ناشيونال · 25 نوفمبر 2026",
+   "url": "https://www.thenationalnews.com/sport/2026/11/25/when-we-put-the-black-jersey-on-it-demands-a-lot-new-zealand-aim-to-lift-spirits-at-dubai-sevens/"
+  },
+  {
+   "topic": "منصة حكومية بالذكاء الاصطناعي",
+   "en": "The UAE unveiled FedAI, a platform to build the fastest, most efficient government.",
+   "ar": "كشفت الإمارات عن منصة فيدآي لبناء أسرع حكومة وأكثرها كفاءة.",
+   "source": "ذا ناشيونال · 25 نوفمبر 2026",
+   "url": "https://www.thenationalnews.com/news/uae/2026/11/25/uae-approves-fedai-platform-to-build-fastest-and-most-efficient-government/"
+  },
+  {
+   "topic": "فائض تجاري سعودي",
+   "en": "Saudi Arabia's merchandise trade surplus grew by 74.5 percent, a strong gain.",
+   "ar": "ارتفع الفائض التجاري السعودي في السلع بنسبة 74.5 في المئة، وهو ارتفاع قوي.",
+   "source": "الشرق الأوسط · 25 نوفمبر 2026",
+   "url": "https://english.aawsat.com/node/5345469"
+  },
+  {
+   "topic": "قابلة تفرّ من القتال",
+   "en": "Midwife Anisa Fadhl fled the fighting in Taiz, Yemen, and left her clinic behind.",
+   "ar": "فرّت القابلة أنيسة فضل من القتال في تعز باليمن، وتركت عيادتها خلفها.",
+   "source": "أخبار الأمم المتحدة · 21 نوفمبر 2026",
+   "url": "https://news.un.org/feed/view/en/story/2026/11/1168851"
+  },
+  {
+   "topic": "بعثة يونانية في الإسكندرية",
+   "en": "A Greek mission uncovered the foundations of a massive limestone structure in Alexandria.",
+   "ar": "كشفت بعثة يونانية عن أسس بنية ضخمة من الحجر الجيري في الإسكندرية.",
+   "source": "إيجيبت إندبندنت · 25 نوفمبر 2026",
+   "url": "https://www.egyptindependent.com/greek-mission-uncovers-massive-structure-in-alexandrias-ancient-royal-quarter/"
+  },
+  {
+   "topic": "نجم البوب التركي",
+   "en": "Tarkan became known as Turkey's 'Megastar' and took Turkish pop to the world.",
+   "ar": "أصبح طركان معروفاً بلقب «ميغاستار» في تركيا، ونقل البوب التركي إلى العالم.",
+   "source": "ذا ناشيونال · 25 نوفمبر 2026",
+   "url": "https://www.thenationalnews.com/arts-culture/music-stage/2026/11/25/how-tarkan-became-turkeys-megastar-and-took-turkish-pop-to-the-world/"
+  }
+ ],
+ "words": [
+  [
+   "aim",
+   "تسعى"
+  ],
+  [
+   "lift",
+   "رفع"
+  ],
+  [
+   "unveiled",
+   "كشفت"
+  ],
+  [
+   "platform",
+   "منصة"
+  ],
+  [
+   "efficient",
+   "كفاءة"
+  ],
+  [
+   "government",
+   "حكومة"
+  ],
+  [
+   "surplus",
+   "فائض"
+  ],
+  [
+   "grew",
+   "ارتفع"
+  ],
+  [
+   "strong",
+   "قوي"
+  ],
+  [
+   "fled",
+   "فرّت"
+  ],
+  [
+   "fighting",
+   "القتال"
+  ],
+  [
+   "clinic",
+   "عيادة"
+  ],
+  [
+   "massive",
+   "ضخمة"
+  ],
+  [
+   "foundations",
+   "أسس"
+  ],
+  [
+   "structure",
+   "بنية"
+  ],
+  [
+   "became",
+   "أصبح"
+  ],
+  [
+   "known",
+   "معروفاً"
+  ],
+  [
+   "took",
+   "نقل"
+  ],
+  [
+   "world",
+   "العالم"
+  ],
+  [
+   "uncovered",
+   "كشفت"
+  ]
+ ],
+ "translations": {
+  "new": "نيو",
+  "zealand": "زيلندا",
+  "aim": "تسعى",
+  "to": "إلى",
+  "lift": "رفع",
+  "spirits": "المعنويات",
+  "at": "في",
+  "the": "ال (أداة التعريف)",
+  "dubai": "دبي",
+  "sevens": "السباعيات",
+  "in": "في",
+  "uae": "الإمارات",
+  "unveiled": "كشفت",
+  "fedai": "فيدآي",
+  "a": "أداة تنكير",
+  "platform": "منصة",
+  "build": "بناء",
+  "fastest": "الأسرع",
+  "most": "الأكثر",
+  "efficient": "كفؤة",
+  "government": "حكومة",
+  "saudi": "سعودي",
+  "arabia's": "العربية",
+  "merchandise": "السلع",
+  "trade": "التجاري",
+  "surplus": "فائض",
+  "grew": "ارتفع",
+  "by": "بنسبة",
+  "74.5": "٧٤٫٥",
+  "percent": "في المئة",
+  "strong": "قوي",
+  "gain": "ارتفاع",
+  "midwife": "قابلة",
+  "anisa": "أنيسة",
+  "fadhl": "فضل",
+  "fled": "فرّت",
+  "fighting": "القتال",
+  "taiz": "تعز",
+  "yemen": "اليمن",
+  "and": "و",
+  "left": "تركت",
+  "her": "ها الملكية",
+  "clinic": "عيادة",
+  "behind": "خلف",
+  "greek": "يونانية",
+  "mission": "بعثة",
+  "uncovered": "كشفت",
+  "foundations": "أسس",
+  "of": "من",
+  "massive": "ضخم",
+  "limestone": "الحجر الجيري",
+  "structure": "بنية",
+  "alexandria": "الإسكندرية",
+  "tarkan": "طركان",
+  "became": "أصبح",
+  "known": "معروفاً",
+  "as": "بلقب",
+  "turkey's": "تركيا",
+  "megastar": "ميغاستار",
+  "took": "نقل",
+  "turkish": "التركي",
+  "pop": "البوب",
+  "world": "العالم"
+ },
+ "audio": {
+  "stories": [
+   "audio/2026-11-25/news-1.mp3",
+   "audio/2026-11-25/news-2.mp3",
+   "audio/2026-11-25/news-3.mp3",
+   "audio/2026-11-25/news-4.mp3",
+   "audio/2026-11-25/news-5.mp3",
+   "audio/2026-11-25/news-6.mp3"
+  ],
+  "words": [
+   "audio/2026-11-25/words/word-01.mp3",
+   "audio/2026-11-25/words/word-02.mp3",
+   "audio/2026-11-25/words/word-03.mp3",
+   "audio/2026-11-25/words/word-04.mp3",
+   "audio/2026-11-25/words/word-05.mp3",
+   "audio/2026-11-25/words/word-06.mp3",
+   "audio/2026-11-25/words/word-07.mp3",
+   "audio/2026-11-25/words/word-08.mp3",
+   "audio/2026-11-25/words/word-09.mp3",
+   "audio/2026-11-25/words/word-10.mp3",
+   "audio/2026-11-25/words/word-11.mp3",
+   "audio/2026-11-25/words/word-12.mp3",
+   "audio/2026-11-25/words/word-13.mp3",
+   "audio/2026-11-25/words/word-14.mp3",
+   "audio/2026-11-25/words/word-15.mp3",
+   "audio/2026-11-25/words/word-16.mp3",
+   "audio/2026-11-25/words/word-17.mp3",
+   "audio/2026-11-25/words/word-18.mp3",
+   "audio/2026-11-25/words/word-19.mp3",
+   "audio/2026-11-25/words/word-20.mp3"
+  ]
+ },
+ "generated": {
+  "by": "claude",
+  "at": "2026-11-25T11:46:33Z"
+ }
+}

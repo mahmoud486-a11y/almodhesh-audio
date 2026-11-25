@@ -1,0 +1,22 @@
+name: Arabic voice search (read-only)
+
+# بحث للقراءة فقط في مكتبة أصوات ElevenLabs — لا يستهلك رصيدًا، ولا يغيّر الحساب أو الموقع أو أي إعداد صوتي.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Search the shared voice library
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: python .github/tools/find_arabic_voices.py

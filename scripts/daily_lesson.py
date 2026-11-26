@@ -56,7 +56,7 @@ DEFAULT_LESSON_VOICE = "21m00Tcm4TlvDq8ikWAM"  # صوت أمريكي جاهز؛ 
 STORIES = 6
 WORDS = 20
 EN_MIN, EN_MAX = 40, 125
-DAILY_MAX_CHARS = 1000
+DAILY_MAX_CHARS = 3300  # 3 أخبار × 3 مستويات: الإنجليزية (حتى 1900) + الترجمة العربية المسموعة (نحو 1100–1400)
 # الدروس من الأحد إلى الخميس؛ الجمعة والسبت يوما مراجعة واختبار أسبوعي (بتوقيت أوتاوا)، بلا درس ولا استهلاك
 REVIEW_WEEKDAYS = (4, 5)  # الجمعة، السبت (الاثنين = 0)
 MAX_AGE_DAYS = 4
@@ -316,16 +316,17 @@ def news_prompt(items: list[NewsItem], budget: int, feedback: list[str]) -> str:
     return "\n".join(lines)
 
 
-def call_claude(prompt: str, model: str) -> tuple[dict, dict]:
+def call_claude(prompt: str, model: str, system: str | None = None, schema: dict | None = None,
+                effort: str = "medium") -> tuple[dict, dict]:
     import anthropic  # يُستورد هنا حتى تعمل الأوامر الأخرى دون المكتبة
 
     client = anthropic.Anthropic()  # يقرأ ANTHROPIC_API_KEY من البيئة
     kwargs = dict(
         model=model,
         max_tokens=16000,
-        system=SYSTEM_PROMPT,
+        system=system or SYSTEM_PROMPT,
         messages=[{"role": "user", "content": prompt}],
-        output_config={"effort": "medium", "format": {"type": "json_schema", "schema": LESSON_SCHEMA}},
+        output_config={"effort": effort, "format": {"type": "json_schema", "schema": schema or LESSON_SCHEMA}},
     )
     if model in FALLBACK_MODELS:
         # عند رفض نادر من مصنّفات الأمان يعيد الخادم المحاولة على نموذج بديل تلقائيًا
@@ -588,7 +589,7 @@ def generate_audio(daily_cap: int = DAILY_MAX_CHARS) -> bool:
 # ---------------------------------------------------------------- التشغيل
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("command", choices=["news", "prepare", "audio", "build", "run"])
+    p.add_argument("command", choices=["news", "prepare", "audio", "build", "run", "backfill"])
     p.add_argument("--date", help="تاريخ الدرس YYYY-MM-DD (الافتراضي: اليوم بتوقيت أوتاوا)")
     p.add_argument("--daily-max-chars", type=int, default=DAILY_MAX_CHARS)
     args = p.parse_args(argv)
@@ -617,12 +618,21 @@ def main(argv=None) -> int:
         summary("ℹ️ لم يُضبط ANTHROPIC_API_KEY بعد؛ لم يُعدّ درس جديد ولم يتغير شيء. يبقى آخر درس صالح منشورًا.")
         return 0
 
+    import multilevel as ml  # الدرس بثلاثة مستويات (مبتدئ، متوسط، متقدم)
+    text_levels = ml.env_levels("LESSON_LEVELS", list(ml.LEVEL_ORDER))
+    audio_levels = ml.env_levels("AUDIO_LEVELS", list(ml.LEVEL_ORDER))
+    if args.command == "backfill":
+        ok = ml.backfill(args.daily_max_chars)
+        print(f"أحدث درس في الموقع: {build_site_data.build(LESSONS_DIR, SITE / 'lessons-data.js')}")
+        return 0 if ok else 1
+    print(f"مستويات النص: {', '.join(text_levels)} | مستويات صوت ElevenLabs: {', '.join(audio_levels)}")
+
     ok = True
     if args.command in ("prepare", "run"):
         # حجم الدرس الصوتي لا يتجاوز الحد اليومي؛ والاستهلاك الفعلي يُفحص مرة أخرى قبل التوليد
-        ok = prepare(day, model, args.daily_max_chars) is not None
+        ok = ml.prepare(day, model, args.daily_max_chars, text_levels, audio_levels) is not None
     if args.command == "audio" or (args.command == "run" and ok):
-        ok = generate_audio(args.daily_max_chars) and ok
+        ok = ml.generate_audio(args.daily_max_chars, audio_levels) and ok
     if args.command in ("run", "audio"):
         print(f"أحدث درس في الموقع: {build_site_data.build(LESSONS_DIR, SITE / 'lessons-data.js')}")
     return 0 if ok else 1

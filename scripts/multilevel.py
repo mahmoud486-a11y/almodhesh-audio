@@ -522,10 +522,14 @@ def arabic_paths(lesson: dict, level: str) -> list[str]:
     return [f"audio/{lesson['key']}/{level}/news-{i}-ar.mp3" for i in range(1, len(lesson["levels"][level]["stories"]) + 1)]
 
 
+DEFAULT_ARABIC_VOICE = "fkqevZRU7Xj52dY1CTkq"  # الصوت العربي المختار بعد مقارنة الاستماع (مع Multilingual v2)
+
+
 def voices() -> tuple[str, str, str]:
-    """(الصوت الإنجليزي، الصوت العربي، النموذج). الصوت العربي يُحدَّد بـ ELEVENLABS_ARABIC_VOICE_ID."""
+    """(الصوت الإنجليزي، الصوت العربي، النموذج). الصوت الإنجليزي ونموذجه كما هما دون أي تغيير؛
+    والترجمة العربية بالصوت العربي المختار وبالنموذج نفسه (Multilingual v2)."""
     en = os.environ.get("ELEVENLABS_LESSON_VOICE_ID", "").strip() or dl.DEFAULT_LESSON_VOICE
-    ar = os.environ.get("ELEVENLABS_ARABIC_VOICE_ID", "").strip() or en
+    ar = os.environ.get("ELEVENLABS_ARABIC_VOICE_ID", "").strip() or DEFAULT_ARABIC_VOICE
     model = os.environ.get("ELEVENLABS_LESSON_MODEL_ID", "").strip() or dl.DEFAULT_TTS_MODEL
     return en, ar, model
 

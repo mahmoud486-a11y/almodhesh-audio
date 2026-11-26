@@ -354,6 +354,23 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("const lessonArabicAudio=", self.data("advanced"))
         self.assertIn("-ar.mp3", self.data("advanced").split("const lessonArabicAudio=")[1])
 
+    def test_voices_english_unchanged_arabic_selected_same_model(self):
+        calls = []
+
+        def synth(text, key, voice, model, fmt):
+            calls.append((dl.ARABIC.search(text) is not None, voice, model, fmt))
+            return b"ID3"
+        env = {"ANTHROPIC_API_KEY": "a", "ELEVENLABS_API_KEY": "e"}
+        with mock.patch.object(dl, "fetch_news", return_value=news_items()), self.claude(), \
+             mock.patch.object(dl.tts, "remaining_characters", return_value=35000), \
+             mock.patch.object(dl.tts, "synthesize", side_effect=synth):
+            code, _ = self.run_cli("run", env=env)
+        self.assertEqual(code, 0)
+        english = {(v, m, f) for is_ar, v, m, f in calls if not is_ar}
+        arabic = {(v, m, f) for is_ar, v, m, f in calls if is_ar}
+        self.assertEqual(english, {("21m00Tcm4TlvDq8ikWAM", "eleven_multilingual_v2", "mp3_44100_128")})  # كما هو تمامًا
+        self.assertEqual(arabic, {("fkqevZRU7Xj52dY1CTkq", "eleven_multilingual_v2", "mp3_44100_128")})
+
     def test_arabic_review_uses_strongest_model_and_is_applied(self):
         fixes = {"corrections": [
             {"id": "s:beginner:0", "ar": "جملة عربية مصححة , وواضحة", "issue": "grammar"},

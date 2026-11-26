@@ -22,5 +22,68 @@
   "output_tokens": 14495,
   "model": "claude-haiku-5-5",
   "est_cost_usd": 0.00831
+ },
+ {
+  "date": "2026-11-26",
+  "attempt": 1,
+  "input_tokens": 10730,
+  "output_tokens": 3105,
+  "model": "claude-haiku-5-5",
+  "step": "facts",
+  "est_cost_usd": 0.00263
+ },
+ {
+  "date": "2026-11-26",
+  "attempt": 1,
+  "input_tokens": 1619,
+  "output_tokens": 15648,
+  "model": "claude-haiku-5-5",
+  "step": "intermediate",
+  "est_cost_usd": 0.00799
+ },
+ {
+  "date": "2026-11-26",
+  "attempt": 1,
+  "input_tokens": 1728,
+  "output_tokens": 14157,
+  "model": "claude-haiku-5-5",
+  "step": "beginner",
+  "est_cost_usd": 0.00725
+ },
+ {
+  "date": "2026-11-26",
+  "attempt": 2,
+  "input_tokens": 1837,
+  "output_tokens": 7899,
+  "model": "claude-haiku-5-5",
+  "step": "beginner",
+  "est_cost_usd": 0.00413
+ },
+ {
+  "date": "2026-11-26",
+  "attempt": 3,
+  "input_tokens": 1799,
+  "output_tokens": 15018,
+  "model": "claude-haiku-5-5",
+  "step": "beginner",
+  "est_cost_usd": 0.00769
+ },
+ {
+  "date": "2026-11-26",
+  "attempt": 1,
+  "input_tokens": 1743,
+  "output_tokens": 14588,
+  "model": "claude-haiku-5-5",
+  "step": "advanced",
+  "est_cost_usd": 0.00747
+ },
+ {
+  "date": "2026-11-26",
+  "attempt": 1,
+  "input_tokens": 16187,
+  "output_tokens": 4026,
+  "model": "claude-sonnet-5-5",
+  "step": "review",
+  "est_cost_usd": 0.07263
  }
 ]

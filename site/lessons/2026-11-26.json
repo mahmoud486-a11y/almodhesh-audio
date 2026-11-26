@@ -1,0 +1,974 @@
+{
+ "key": "2026-11-26",
+ "date": "الخميس، 26 نوفمبر 2026",
+ "archive_date": "26 نوفمبر 2026",
+ "archive_title": "السياسة، الاقتصاد، الصحة",
+ "default_level": "intermediate",
+ "facts": [
+  {
+   "news_id": 55,
+   "category": "politics",
+   "country": "Saudi Arabia",
+   "facts": [
+    "Saudi Arabia, Turkey and Pakistan will hold a meeting in Islamabad on their mutual defence agreement.",
+    "The meeting is scheduled for Friday and Saturday, according to two Pakistani sources.",
+    "The foreign ministers of Saudi Arabia and Turkey are arriving in Pakistan to attend the meeting."
+   ]
+  },
+  {
+   "news_id": 2,
+   "category": "economy",
+   "country": "United Arab Emirates",
+   "facts": [
+    "Lufthansa Group and Air France have resumed flights to Dubai.",
+    "Dubai is a city in the United Arab Emirates."
+   ]
+  },
+  {
+   "news_id": 20,
+   "category": "health",
+   "country": "United Arab Emirates",
+   "facts": [
+    "Restaurants and cafes in Abu Dhabi will display calorie counts on their menus.",
+    "The calorie count requirement will start from June 2027."
+   ]
+  }
+ ],
+ "levels": {
+  "beginner": {
+   "stories": [
+    {
+     "topic": "دفاع مشترك ثلاثي",
+     "en": "Saudi Arabia, Turkey and Pakistan have scheduled a two-day meeting in Islamabad on their mutual defense agreement, sources say.",
+     "ar": "حددت السعودية وتركيا وباكستان اجتماعًا لمدة يومين في إسلام آباد بشأن اتفاقية الدفاع المشترك بينها، بحسب مصادر.",
+     "source": "المونيتور · 26 نوفمبر 2026",
+     "url": "https://www.al-monitor.com/originals/2026/11/pakistan-saudi-turkey-hold-mecca-alliance-meeting-islamabad-nov-27-28-sources-say"
+    },
+    {
+     "topic": "رحلات جوية إلى دبي",
+     "en": "Two airlines, Lufthansa Group and Air France, have restarted flights to Dubai, a city in the United Arab Emirates.",
+     "ar": "استأنفت شركتا طيران، هما مجموعة لوفتهانزا وإير فرانس، رحلاتهما إلى دبي، وهي مدينة في الإمارات العربية المتحدة.",
+     "source": "ذا ناشيونال · 26 نوفمبر 2026",
+     "url": "https://www.thenationalnews.com/travel/2026/11/26/lufthansa-group-and-air-france-resume-flights-to-dubai/"
+    },
+    {
+     "topic": "السعرات الحرارية في المطاعم",
+     "en": "Restaurants and cafes in Abu Dhabi will display calorie counts on their menus, a requirement starting in June 2027.",
+     "ar": "ستعرض المطاعم والمقاهي في أبوظبي السعرات الحرارية على قوائمها، وهو شرط يبدأ في يونيو 2027.",
+     "source": "ذا ناشيونال · 26 نوفمبر 2026",
+     "url": "https://www.thenationalnews.com/news/uae/2026/11/26/abu-dhabi-restaurants-and-cafes-to-display-calorie-counts-on-menus-from-june-2027/"
+    }
+   ],
+   "words": [
+    [
+     "scheduled",
+     "حدّدت"
+    ],
+    [
+     "two-day",
+     "لمدة يومين"
+    ],
+    [
+     "meeting",
+     "اجتماع"
+    ],
+    [
+     "mutual",
+     "مشترك"
+    ],
+    [
+     "defense",
+     "دفاع"
+    ],
+    [
+     "agreement",
+     "اتفاقية"
+    ],
+    [
+     "sources",
+     "مصادر"
+    ],
+    [
+     "say",
+     "تفيد"
+    ],
+    [
+     "airlines",
+     "شركات طيران"
+    ],
+    [
+     "restarted",
+     "استأنفت"
+    ],
+    [
+     "flights",
+     "رحلات"
+    ],
+    [
+     "city",
+     "مدينة"
+    ],
+    [
+     "display",
+     "تعرض"
+    ],
+    [
+     "calorie",
+     "سعرات حرارية"
+    ],
+    [
+     "counts",
+     "أرقام"
+    ],
+    [
+     "menus",
+     "قوائم الطعام"
+    ],
+    [
+     "restaurants",
+     "مطاعم"
+    ],
+    [
+     "cafes",
+     "مقاهٍ"
+    ],
+    [
+     "requirement",
+     "شرط"
+    ],
+    [
+     "starting",
+     "ابتداءً من"
+    ]
+   ],
+   "translations": {
+    "saudi": "السعودية",
+    "arabia": "العربية",
+    "turkey": "تركيا",
+    "and": "و",
+    "pakistan": "باكستان",
+    "have": "قد",
+    "scheduled": "حدّدت",
+    "a": "أداة تنكير",
+    "two-day": "لمدة يومين",
+    "meeting": "اجتماع",
+    "in": "في",
+    "islamabad": "إسلام آباد",
+    "on": "على",
+    "their": "الخاصة بها",
+    "mutual": "مشترك",
+    "defense": "دفاع",
+    "agreement": "اتفاقية",
+    "sources": "مصادر",
+    "say": "تفيد",
+    "two": "اثنتان",
+    "airlines": "شركات طيران",
+    "lufthansa": "لوفتهانزا",
+    "group": "مجموعة",
+    "air": "إير",
+    "france": "فرانس",
+    "restarted": "استأنفت",
+    "flights": "رحلات",
+    "to": "إلى",
+    "dubai": "دبي",
+    "city": "مدينة",
+    "the": "أداة التعريف",
+    "united": "المتحدة",
+    "arab": "العربية",
+    "emirates": "الإمارات",
+    "restaurants": "مطاعم",
+    "cafes": "مقاهٍ",
+    "abu": "أبو",
+    "dhabi": "ظبي",
+    "will": "سوف",
+    "display": "تعرض",
+    "calorie": "سعرات حرارية",
+    "counts": "أرقام",
+    "menus": "قوائم الطعام",
+    "requirement": "شرط",
+    "starting": "ابتداءً من",
+    "june": "يونيو"
+   },
+   "exercises": [
+    {
+     "question": "What will Saudi Arabia, Turkey and Pakistan do?",
+     "question_ar": "ماذا ستفعل السعودية وتركيا وباكستان؟",
+     "options": [
+      "Hold a defense meeting",
+      "Close their airports",
+      "Open new restaurants",
+      "Sign a trade deal"
+     ],
+     "answer": 0
+    },
+    {
+     "question": "Which airlines have restarted flights to Dubai?",
+     "question_ar": "أي شركات طيران استأنفت رحلاتها إلى دبي؟",
+     "options": [
+      "Lufthansa Group and Air France",
+      "Turkish Airlines and KLM",
+      "Saudia and Pakistan International",
+      "Dubai Airport Group"
+     ],
+     "answer": 0
+    },
+    {
+     "question": "When does the calorie count requirement start in Abu Dhabi?",
+     "question_ar": "متى يبدأ شرط عرض السعرات الحرارية في أبوظبي؟",
+     "options": [
+      "In June 2027",
+      "In June 2025",
+      "This Friday",
+      "Only in Dubai"
+     ],
+     "answer": 0
+    }
+   ],
+   "audio": {
+    "stories": [
+     "audio/2026-11-26/intermediate/news-1.mp3",
+     "audio/2026-11-26/intermediate/news-2.mp3",
+     "audio/2026-11-26/intermediate/news-3.mp3"
+    ],
+    "words": [
+     "audio/2026-11-26/intermediate/words/word-01.mp3",
+     "audio/2026-11-26/intermediate/words/word-02.mp3",
+     "audio/2026-11-26/intermediate/words/word-03.mp3",
+     "audio/2026-11-26/intermediate/words/word-04.mp3",
+     "audio/2026-11-26/intermediate/words/word-05.mp3",
+     "audio/2026-11-26/intermediate/words/word-06.mp3",
+     "audio/2026-11-26/intermediate/words/word-07.mp3",
+     "audio/2026-11-26/intermediate/words/word-08.mp3",
+     "audio/2026-11-26/intermediate/words/word-09.mp3",
+     "audio/2026-11-26/intermediate/words/word-10.mp3",
+     "audio/2026-11-26/intermediate/words/word-11.mp3",
+     "audio/2026-11-26/intermediate/words/word-12.mp3",
+     "audio/2026-11-26/intermediate/words/word-13.mp3",
+     "audio/2026-11-26/intermediate/words/word-14.mp3",
+     "audio/2026-11-26/intermediate/words/word-15.mp3",
+     "audio/2026-11-26/intermediate/words/word-16.mp3",
+     "audio/2026-11-26/intermediate/words/word-17.mp3",
+     "audio/2026-11-26/intermediate/words/word-18.mp3",
+     "audio/2026-11-26/intermediate/words/word-19.mp3",
+     "audio/2026-11-26/intermediate/words/word-20.mp3"
+    ],
+    "stories_ar": [
+     "audio/2026-11-26/intermediate/news-1-ar.mp3",
+     "audio/2026-11-26/intermediate/news-2-ar.mp3",
+     "audio/2026-11-26/intermediate/news-3-ar.mp3"
+    ]
+   },
+   "generated_by": "claude",
+   "same_as": "intermediate"
+  },
+  "intermediate": {
+   "stories": [
+    {
+     "topic": "دفاع مشترك ثلاثي",
+     "en": "Saudi Arabia, Turkey and Pakistan have scheduled a two-day meeting in Islamabad on their mutual defense agreement, sources say.",
+     "ar": "حددت السعودية وتركيا وباكستان اجتماعًا لمدة يومين في إسلام آباد بشأن اتفاقية الدفاع المشترك بينها، بحسب مصادر.",
+     "source": "المونيتور · 26 نوفمبر 2026",
+     "url": "https://www.al-monitor.com/originals/2026/11/pakistan-saudi-turkey-hold-mecca-alliance-meeting-islamabad-nov-27-28-sources-say"
+    },
+    {
+     "topic": "رحلات جوية إلى دبي",
+     "en": "Two airlines, Lufthansa Group and Air France, have restarted flights to Dubai, a city in the United Arab Emirates.",
+     "ar": "استأنفت شركتا طيران، هما مجموعة لوفتهانزا وإير فرانس، رحلاتهما إلى دبي، وهي مدينة في الإمارات العربية المتحدة.",
+     "source": "ذا ناشيونال · 26 نوفمبر 2026",
+     "url": "https://www.thenationalnews.com/travel/2026/11/26/lufthansa-group-and-air-france-resume-flights-to-dubai/"
+    },
+    {
+     "topic": "السعرات الحرارية في المطاعم",
+     "en": "Restaurants and cafes in Abu Dhabi will display calorie counts on their menus, a requirement starting in June 2027.",
+     "ar": "ستعرض المطاعم والمقاهي في أبوظبي السعرات الحرارية على قوائمها، وهو شرط يبدأ في يونيو 2027.",
+     "source": "ذا ناشيونال · 26 نوفمبر 2026",
+     "url": "https://www.thenationalnews.com/news/uae/2026/11/26/abu-dhabi-restaurants-and-cafes-to-display-calorie-counts-on-menus-from-june-2027/"
+    }
+   ],
+   "words": [
+    [
+     "scheduled",
+     "حدّدت"
+    ],
+    [
+     "two-day",
+     "لمدة يومين"
+    ],
+    [
+     "meeting",
+     "اجتماع"
+    ],
+    [
+     "mutual",
+     "مشترك"
+    ],
+    [
+     "defense",
+     "دفاع"
+    ],
+    [
+     "agreement",
+     "اتفاقية"
+    ],
+    [
+     "sources",
+     "مصادر"
+    ],
+    [
+     "say",
+     "تفيد"
+    ],
+    [
+     "airlines",
+     "شركات طيران"
+    ],
+    [
+     "restarted",
+     "استأنفت"
+    ],
+    [
+     "flights",
+     "رحلات"
+    ],
+    [
+     "city",
+     "مدينة"
+    ],
+    [
+     "display",
+     "تعرض"
+    ],
+    [
+     "calorie",
+     "سعرات حرارية"
+    ],
+    [
+     "counts",
+     "أرقام"
+    ],
+    [
+     "menus",
+     "قوائم الطعام"
+    ],
+    [
+     "restaurants",
+     "مطاعم"
+    ],
+    [
+     "cafes",
+     "مقاهٍ"
+    ],
+    [
+     "requirement",
+     "شرط"
+    ],
+    [
+     "starting",
+     "ابتداءً من"
+    ]
+   ],
+   "translations": {
+    "saudi": "السعودية",
+    "arabia": "العربية",
+    "turkey": "تركيا",
+    "and": "و",
+    "pakistan": "باكستان",
+    "have": "قد",
+    "scheduled": "حدّدت",
+    "a": "أداة تنكير",
+    "two-day": "لمدة يومين",
+    "meeting": "اجتماع",
+    "in": "في",
+    "islamabad": "إسلام آباد",
+    "on": "على",
+    "their": "الخاصة بها",
+    "mutual": "مشترك",
+    "defense": "دفاع",
+    "agreement": "اتفاقية",
+    "sources": "مصادر",
+    "say": "تفيد",
+    "two": "اثنتان",
+    "airlines": "شركات طيران",
+    "lufthansa": "لوفتهانزا",
+    "group": "مجموعة",
+    "air": "إير",
+    "france": "فرانس",
+    "restarted": "استأنفت",
+    "flights": "رحلات",
+    "to": "إلى",
+    "dubai": "دبي",
+    "city": "مدينة",
+    "the": "أداة التعريف",
+    "united": "المتحدة",
+    "arab": "العربية",
+    "emirates": "الإمارات",
+    "restaurants": "مطاعم",
+    "cafes": "مقاهٍ",
+    "abu": "أبو",
+    "dhabi": "ظبي",
+    "will": "سوف",
+    "display": "تعرض",
+    "calorie": "سعرات حرارية",
+    "counts": "أرقام",
+    "menus": "قوائم الطعام",
+    "requirement": "شرط",
+    "starting": "ابتداءً من",
+    "june": "يونيو"
+   },
+   "exercises": [
+    {
+     "question": "What will Saudi Arabia, Turkey and Pakistan do?",
+     "question_ar": "ماذا ستفعل السعودية وتركيا وباكستان؟",
+     "options": [
+      "Hold a defense meeting",
+      "Close their airports",
+      "Open new restaurants",
+      "Sign a trade deal"
+     ],
+     "answer": 0
+    },
+    {
+     "question": "Which airlines have restarted flights to Dubai?",
+     "question_ar": "أي شركات طيران استأنفت رحلاتها إلى دبي؟",
+     "options": [
+      "Lufthansa Group and Air France",
+      "Turkish Airlines and KLM",
+      "Saudia and Pakistan International",
+      "Dubai Airport Group"
+     ],
+     "answer": 0
+    },
+    {
+     "question": "When does the calorie count requirement start in Abu Dhabi?",
+     "question_ar": "متى يبدأ شرط عرض السعرات الحرارية في أبوظبي؟",
+     "options": [
+      "In June 2027",
+      "In June 2025",
+      "This Friday",
+      "Only in Dubai"
+     ],
+     "answer": 0
+    }
+   ],
+   "audio": {
+    "stories": [
+     "audio/2026-11-26/intermediate/news-1.mp3",
+     "audio/2026-11-26/intermediate/news-2.mp3",
+     "audio/2026-11-26/intermediate/news-3.mp3"
+    ],
+    "words": [
+     "audio/2026-11-26/intermediate/words/word-01.mp3",
+     "audio/2026-11-26/intermediate/words/word-02.mp3",
+     "audio/2026-11-26/intermediate/words/word-03.mp3",
+     "audio/2026-11-26/intermediate/words/word-04.mp3",
+     "audio/2026-11-26/intermediate/words/word-05.mp3",
+     "audio/2026-11-26/intermediate/words/word-06.mp3",
+     "audio/2026-11-26/intermediate/words/word-07.mp3",
+     "audio/2026-11-26/intermediate/words/word-08.mp3",
+     "audio/2026-11-26/intermediate/words/word-09.mp3",
+     "audio/2026-11-26/intermediate/words/word-10.mp3",
+     "audio/2026-11-26/intermediate/words/word-11.mp3",
+     "audio/2026-11-26/intermediate/words/word-12.mp3",
+     "audio/2026-11-26/intermediate/words/word-13.mp3",
+     "audio/2026-11-26/intermediate/words/word-14.mp3",
+     "audio/2026-11-26/intermediate/words/word-15.mp3",
+     "audio/2026-11-26/intermediate/words/word-16.mp3",
+     "audio/2026-11-26/intermediate/words/word-17.mp3",
+     "audio/2026-11-26/intermediate/words/word-18.mp3",
+     "audio/2026-11-26/intermediate/words/word-19.mp3",
+     "audio/2026-11-26/intermediate/words/word-20.mp3"
+    ],
+    "stories_ar": [
+     "audio/2026-11-26/intermediate/news-1-ar.mp3",
+     "audio/2026-11-26/intermediate/news-2-ar.mp3",
+     "audio/2026-11-26/intermediate/news-3-ar.mp3"
+    ]
+   },
+   "generated_by": "claude"
+  },
+  "advanced": {
+   "stories": [
+    {
+     "topic": "دفاع مشترك ثلاثي",
+     "en": "Saudi Arabia, Turkey and Pakistan will convene in Islamabad to discuss their reciprocal defense agreement, with the gathering slated for Friday and Saturday, according to two Pakistani officials.",
+     "ar": "ستعقد السعودية وتركيا وباكستان اجتماعاً في إسلام آباد لمناقشة اتفاقية الدفاع المتبادل بينها، ومن المقرر عقده يومي الجمعة والسبت، وفقاً لمسؤولين باكستانيين اثنين.",
+     "source": "المونيتور · 26 نوفمبر 2026",
+     "url": "https://www.al-monitor.com/originals/2026/11/pakistan-saudi-turkey-hold-mecca-alliance-meeting-islamabad-nov-27-28-sources-say"
+    },
+    {
+     "topic": "رحلات جوية إلى دبي",
+     "en": "Lufthansa Group and Air France have reinstated routes to Dubai, a city within the United Arab Emirates, following a suspension of their services.",
+     "ar": "أعادت مجموعة لوفتهانزا وإير فرانس فتح خطوطهما إلى دبي، وهي مدينة تقع ضمن دولة الإمارات العربية المتحدة، بعد تعليق خدماتهما.",
+     "source": "ذا ناشيونال · 26 نوفمبر 2026",
+     "url": "https://www.thenationalnews.com/travel/2026/11/26/lufthansa-group-and-air-france-resume-flights-to-dubai/"
+    },
+    {
+     "topic": "السعرات الحرارية في المطاعم",
+     "en": "Restaurants and cafés in Abu Dhabi will be obliged to post calorie content on their menus, with the mandate taking effect in June 2027.",
+     "ar": "ستُلزم المطاعم والمقاهي في أبوظبي بنشر محتوى السعرات الحرارية على قوائم طعامها، على أن يبدأ سريان هذا الإلزام في يونيو 2027.",
+     "source": "ذا ناشيونال · 26 نوفمبر 2026",
+     "url": "https://www.thenationalnews.com/news/uae/2026/11/26/abu-dhabi-restaurants-and-cafes-to-display-calorie-counts-on-menus-from-june-2027/"
+    }
+   ],
+   "words": [
+    [
+     "convene",
+     "تعقد"
+    ],
+    [
+     "reciprocal",
+     "المتبادل"
+    ],
+    [
+     "gathering",
+     "اجتماعاً"
+    ],
+    [
+     "slated",
+     "مقرر"
+    ],
+    [
+     "officials",
+     "مسؤولين"
+    ],
+    [
+     "reinstated",
+     "أعادت فتح"
+    ],
+    [
+     "routes",
+     "خطوط"
+    ],
+    [
+     "suspension",
+     "تعليق"
+    ],
+    [
+     "services",
+     "خدماتهما"
+    ],
+    [
+     "obliged",
+     "ستُلزم"
+    ],
+    [
+     "post",
+     "بنشر"
+    ],
+    [
+     "content",
+     "محتوى"
+    ],
+    [
+     "mandate",
+     "الإلزام"
+    ],
+    [
+     "effect",
+     "سريان"
+    ],
+    [
+     "discuss",
+     "لمناقشة"
+    ],
+    [
+     "according",
+     "وفقاً"
+    ],
+    [
+     "defense",
+     "الدفاع"
+    ],
+    [
+     "taking",
+     "يبدأ"
+    ],
+    [
+     "Pakistani",
+     "باكستانيين"
+    ],
+    [
+     "Emirates",
+     "الإمارات"
+    ]
+   ],
+   "translations": {
+    "saudi": "السعودية",
+    "arabia": "العربية",
+    "turkey": "تركيا",
+    "and": "و",
+    "pakistan": "باكستان",
+    "will": "سوف",
+    "convene": "تعقد",
+    "in": "في",
+    "islamabad": "إسلام آباد",
+    "to": "إلى",
+    "discuss": "لمناقشة",
+    "their": "الخاصة بها",
+    "reciprocal": "المتبادل",
+    "defense": "الدفاع",
+    "agreement": "اتفاقية",
+    "with": "مع",
+    "the": "ال",
+    "gathering": "اجتماعاً",
+    "slated": "مقرر",
+    "for": "لـ",
+    "friday": "الجمعة",
+    "saturday": "السبت",
+    "according": "وفقاً",
+    "two": "اثنين",
+    "pakistani": "باكستانيين",
+    "officials": "مسؤولين",
+    "lufthansa": "لوفتهانزا",
+    "group": "مجموعة",
+    "air": "إير",
+    "france": "فرانس",
+    "have": "قد",
+    "reinstated": "أعادت فتح",
+    "routes": "خطوط",
+    "dubai": "دبي",
+    "a": "أداة تنكير",
+    "city": "مدينة",
+    "within": "ضمن",
+    "united": "المتحدة",
+    "arab": "العربية",
+    "emirates": "الإمارات",
+    "following": "بعد",
+    "suspension": "تعليق",
+    "of": "من",
+    "services": "خدماتهما",
+    "restaurants": "المطاعم",
+    "cafés": "المقاهي",
+    "abu": "أبو",
+    "dhabi": "ظبي",
+    "be": "تكون",
+    "obliged": "ملزمة",
+    "post": "تنشر",
+    "calorie": "السعرات الحرارية",
+    "content": "محتوى",
+    "on": "على",
+    "menus": "قوائم",
+    "mandate": "الإلزام",
+    "taking": "يبدأ",
+    "effect": "سريان",
+    "june": "يونيو"
+   },
+   "exercises": [
+    {
+     "question": "Why are the foreign ministers traveling to Islamabad?",
+     "question_ar": "لماذا يسافر وزراء الخارجية إلى إسلام آباد؟",
+     "options": [
+      "To attend the defense meeting",
+      "To sign a trade deal",
+      "To open a new airline",
+      "To review calorie rules"
+     ],
+     "answer": 0
+    },
+    {
+     "question": "What does 'reinstated' most likely mean in the context of the flights?",
+     "question_ar": "ماذا تعني كلمة «reinstated» على الأرجح في سياق الرحلات؟",
+     "options": [
+      "Brought back into service",
+      "Permanently cancelled",
+      "Moved to another city",
+      "Reduced in price"
+     ],
+     "answer": 0
+    },
+    {
+     "question": "What can be inferred about the timing of the calorie rule?",
+     "question_ar": "ما الذي يمكن استنتاجه بشأن توقيت قاعدة السعرات الحرارية؟",
+     "options": [
+      "It will not apply until a later date",
+      "It already applies to all cafes",
+      "It was canceled in June",
+      "It only covers Dubai"
+     ],
+     "answer": 0
+    }
+   ],
+   "audio": {
+    "stories": [
+     "audio/2026-11-26/advanced/news-1.mp3",
+     "audio/2026-11-26/advanced/news-2.mp3",
+     "audio/2026-11-26/advanced/news-3.mp3"
+    ],
+    "words": [
+     "audio/2026-11-26/advanced/words/word-01.mp3",
+     "audio/2026-11-26/advanced/words/word-02.mp3",
+     "audio/2026-11-26/advanced/words/word-03.mp3",
+     "audio/2026-11-26/advanced/words/word-04.mp3",
+     "audio/2026-11-24/words/word-05.mp3",
+     "audio/2026-11-26/advanced/words/word-06.mp3",
+     "audio/2026-11-26/advanced/words/word-07.mp3",
+     "audio/2026-11-26/advanced/words/word-08.mp3",
+     "audio/2026-11-26/advanced/words/word-09.mp3",
+     "audio/2026-11-26/advanced/words/word-10.mp3",
+     "audio/2026-11-26/advanced/words/word-11.mp3",
+     "audio/2026-11-26/advanced/words/word-12.mp3",
+     "audio/2026-11-26/advanced/words/word-13.mp3",
+     "audio/2026-11-26/advanced/words/word-14.mp3",
+     "audio/2026-11-26/advanced/words/word-15.mp3",
+     "audio/2026-11-26/advanced/words/word-16.mp3",
+     "audio/2026-11-26/intermediate/words/word-05.mp3",
+     "audio/2026-11-26/advanced/words/word-18.mp3",
+     "audio/2026-11-26/advanced/words/word-19.mp3",
+     "audio/2026-11-26/advanced/words/word-20.mp3"
+    ],
+    "stories_ar": [
+     "audio/2026-11-26/advanced/news-1-ar.mp3",
+     "audio/2026-11-26/advanced/news-2-ar.mp3",
+     "audio/2026-11-26/advanced/news-3-ar.mp3"
+    ]
+   },
+   "generated_by": "claude"
+  }
+ },
+ "generated": {
+  "by": "claude",
+  "at": "2026-11-26T11:49:21Z"
+ },
+ "stories": [
+  {
+   "topic": "دفاع مشترك ثلاثي",
+   "en": "Saudi Arabia, Turkey and Pakistan have scheduled a two-day meeting in Islamabad on their mutual defense agreement, sources say.",
+   "ar": "حددت السعودية وتركيا وباكستان اجتماعًا لمدة يومين في إسلام آباد بشأن اتفاقية الدفاع المشترك بينها، بحسب مصادر.",
+   "source": "المونيتور · 26 نوفمبر 2026",
+   "url": "https://www.al-monitor.com/originals/2026/11/pakistan-saudi-turkey-hold-mecca-alliance-meeting-islamabad-nov-27-28-sources-say"
+  },
+  {
+   "topic": "رحلات جوية إلى دبي",
+   "en": "Two airlines, Lufthansa Group and Air France, have restarted flights to Dubai, a city in the United Arab Emirates.",
+   "ar": "استأنفت شركتا طيران، هما مجموعة لوفتهانزا وإير فرانس، رحلاتهما إلى دبي، وهي مدينة في الإمارات العربية المتحدة.",
+   "source": "ذا ناشيونال · 26 نوفمبر 2026",
+   "url": "https://www.thenationalnews.com/travel/2026/11/26/lufthansa-group-and-air-france-resume-flights-to-dubai/"
+  },
+  {
+   "topic": "السعرات الحرارية في المطاعم",
+   "en": "Restaurants and cafes in Abu Dhabi will display calorie counts on their menus, a requirement starting in June 2027.",
+   "ar": "ستعرض المطاعم والمقاهي في أبوظبي السعرات الحرارية على قوائمها، وهو شرط يبدأ في يونيو 2027.",
+   "source": "ذا ناشيونال · 26 نوفمبر 2026",
+   "url": "https://www.thenationalnews.com/news/uae/2026/11/26/abu-dhabi-restaurants-and-cafes-to-display-calorie-counts-on-menus-from-june-2027/"
+  }
+ ],
+ "words": [
+  [
+   "scheduled",
+   "حدّدت"
+  ],
+  [
+   "two-day",
+   "لمدة يومين"
+  ],
+  [
+   "meeting",
+   "اجتماع"
+  ],
+  [
+   "mutual",
+   "مشترك"
+  ],
+  [
+   "defense",
+   "دفاع"
+  ],
+  [
+   "agreement",
+   "اتفاقية"
+  ],
+  [
+   "sources",
+   "مصادر"
+  ],
+  [
+   "say",
+   "تفيد"
+  ],
+  [
+   "airlines",
+   "شركات طيران"
+  ],
+  [
+   "restarted",
+   "استأنفت"
+  ],
+  [
+   "flights",
+   "رحلات"
+  ],
+  [
+   "city",
+   "مدينة"
+  ],
+  [
+   "display",
+   "تعرض"
+  ],
+  [
+   "calorie",
+   "سعرات حرارية"
+  ],
+  [
+   "counts",
+   "أرقام"
+  ],
+  [
+   "menus",
+   "قوائم الطعام"
+  ],
+  [
+   "restaurants",
+   "مطاعم"
+  ],
+  [
+   "cafes",
+   "مقاهٍ"
+  ],
+  [
+   "requirement",
+   "شرط"
+  ],
+  [
+   "starting",
+   "ابتداءً من"
+  ]
+ ],
+ "translations": {
+  "saudi": "السعودية",
+  "arabia": "العربية",
+  "turkey": "تركيا",
+  "and": "و",
+  "pakistan": "باكستان",
+  "have": "قد",
+  "scheduled": "حدّدت",
+  "a": "أداة تنكير",
+  "two-day": "لمدة يومين",
+  "meeting": "اجتماع",
+  "in": "في",
+  "islamabad": "إسلام آباد",
+  "on": "على",
+  "their": "الخاصة بها",
+  "mutual": "مشترك",
+  "defense": "دفاع",
+  "agreement": "اتفاقية",
+  "sources": "مصادر",
+  "say": "تفيد",
+  "two": "اثنتان",
+  "airlines": "شركات طيران",
+  "lufthansa": "لوفتهانزا",
+  "group": "مجموعة",
+  "air": "إير",
+  "france": "فرانس",
+  "restarted": "استأنفت",
+  "flights": "رحلات",
+  "to": "إلى",
+  "dubai": "دبي",
+  "city": "مدينة",
+  "the": "أداة التعريف",
+  "united": "المتحدة",
+  "arab": "العربية",
+  "emirates": "الإمارات",
+  "restaurants": "مطاعم",
+  "cafes": "مقاهٍ",
+  "abu": "أبو",
+  "dhabi": "ظبي",
+  "will": "سوف",
+  "display": "تعرض",
+  "calorie": "سعرات حرارية",
+  "counts": "أرقام",
+  "menus": "قوائم الطعام",
+  "requirement": "شرط",
+  "starting": "ابتداءً من",
+  "june": "يونيو"
+ },
+ "audio": {
+  "stories": [
+   "audio/2026-11-26/intermediate/news-1.mp3",
+   "audio/2026-11-26/intermediate/news-2.mp3",
+   "audio/2026-11-26/intermediate/news-3.mp3"
+  ],
+  "words": [
+   "audio/2026-11-26/intermediate/words/word-01.mp3",
+   "audio/2026-11-26/intermediate/words/word-02.mp3",
+   "audio/2026-11-26/intermediate/words/word-03.mp3",
+   "audio/2026-11-26/intermediate/words/word-04.mp3",
+   "audio/2026-11-26/intermediate/words/word-05.mp3",
+   "audio/2026-11-26/intermediate/words/word-06.mp3",
+   "audio/2026-11-26/intermediate/words/word-07.mp3",
+   "audio/2026-11-26/intermediate/words/word-08.mp3",
+   "audio/2026-11-26/intermediate/words/word-09.mp3",
+   "audio/2026-11-26/intermediate/words/word-10.mp3",
+   "audio/2026-11-26/intermediate/words/word-11.mp3",
+   "audio/2026-11-26/intermediate/words/word-12.mp3",
+   "audio/2026-11-26/intermediate/words/word-13.mp3",
+   "audio/2026-11-26/intermediate/words/word-14.mp3",
+   "audio/2026-11-26/intermediate/words/word-15.mp3",
+   "audio/2026-11-26/intermediate/words/word-16.mp3",
+   "audio/2026-11-26/intermediate/words/word-17.mp3",
+   "audio/2026-11-26/intermediate/words/word-18.mp3",
+   "audio/2026-11-26/intermediate/words/word-19.mp3",
+   "audio/2026-11-26/intermediate/words/word-20.mp3"
+  ],
+  "stories_ar": [
+   "audio/2026-11-26/intermediate/news-1-ar.mp3",
+   "audio/2026-11-26/intermediate/news-2-ar.mp3",
+   "audio/2026-11-26/intermediate/news-3-ar.mp3"
+  ]
+ },
+ "review": {
+  "model": "claude-sonnet-5-5",
+  "corrections": 12,
+  "issues": [
+   {
+    "id": "archive",
+    "issue": "Inconsistent definiteness and conjunction style in the category list; use a consistent definite list."
+   },
+   {
+    "id": "w:intermediate:1",
+    "issue": "Adjectival 'two-day' is rendered awkwardly as 'ليومين'; use 'لمدة يومين'."
+   },
+   {
+    "id": "g:intermediate:two-day",
+    "issue": "Adjectival 'two-day' is rendered awkwardly as 'ليومين'; use 'لمدة يومين'."
+   },
+   {
+    "id": "w:intermediate:14",
+    "issue": "'counts' (calorie counts) is not 'أعداد'; use 'أرقام' or a similar word."
+   },
+   {
+    "id": "g:intermediate:counts",
+    "issue": "'counts' (calorie counts) is not 'أعداد'; use 'أرقام' or a similar word."
+   },
+   {
+    "id": "g:intermediate:saudi",
+    "issue": "In 'Saudi Arabia' the word should be 'السعودية', not the adjective 'سعودي'."
+   },
+   {
+    "id": "g:intermediate:their",
+    "issue": "'خاصتهم' is awkward and wrongly masculine plural for countries; use 'الخاصة بها'."
+   },
+   {
+    "id": "g:advanced:their",
+    "issue": "'خاصتها' is awkward; use 'الخاصة بها'."
+   },
+   {
+    "id": "g:intermediate:france",
+    "issue": "Part of the name 'Air France', which is 'إير فرانس' in the sentence; not 'فرنسا'."
+   },
+   {
+    "id": "q:advanced:1",
+    "issue": "Replace English single quotes with Arabic guillemets."
+   },
+   {
+    "id": "g:advanced:a",
+    "issue": "'هي' is not a meaning of the article 'a'."
+   },
+   {
+    "id": "g:advanced:be",
+    "issue": "Subject is a non-human plural (restaurants and cafés), so the feminine 'تكون' is correct."
+   }
+  ],
+  "at": "2026-11-26T11:49:49Z"
+ }
+}

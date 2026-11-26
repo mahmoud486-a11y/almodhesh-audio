@@ -1,0 +1,40 @@
+name: Arabic voice comparison (Flash vs Multilingual)
+
+# مقارنة صغيرة معتمدة (حد أقصى 460 رصيدًا): لا تلمس الصوت الإنجليزي ولا الموقع، ولا تحفظ شيئًا في المستودع.
+on:
+  workflow_dispatch:
+    inputs:
+      voice_id:
+        description: "معرّف الصوت العربي"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: elevenlabs
+  cancel-in-progress: false
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Record the comparison samples
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ARABIC_VOICE_ID: ${{ inputs.voice_id }}
+        run: python .github/tools/arabic_voice_compare.py
+      - name: Upload samples for review (not published)
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: arabic-voice-comparison
+          path: arabic-voice-comparison/
+          if-no-files-found: ignore
+          retention-days: 7

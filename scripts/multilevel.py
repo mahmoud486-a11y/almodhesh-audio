@@ -104,10 +104,14 @@ FACTS_PROMPT = """You choose the daily news for "Almodhesh" (المدهش), a we
 
 From the numbered news list, choose exactly 3 stories. Selection policy (mandatory):
 - Every story must be about the Middle East and North Africa (MENA): it must happen in, or directly concern, a MENA country. Countries elsewhere in Africa (for example Senegal, Nigeria, Kenya) are NOT MENA. Set "country" to that country, or "MENA region" for a story about several of them.
-- Choose exactly one story for each category: "politics" (government decisions, elections, diplomacy, agreements, public policy), "economy" (business, trade, jobs, energy, markets, investment) and "health" (health care, medicine, public health, hospitals, research).
-- For the politics story prefer diplomacy, agreements and policy decisions over fighting; keep it neutral, factual and free of graphic details.
+- Choose exactly one story for each category, and in each category pick the MOST important and significant story of the day for a broad audience across the region:
+  - "politics": major regional or international developments that affect the Middle East (diplomacy, agreements, elections, major government decisions, international relations).
+  - "economy": news that affects people's lives: income, jobs and employment, cost of living and prices, energy, trade, major investment.
+  - "health": significant medical discoveries, new treatments, disease prevention and public health measures that benefit many people.
+- Judge importance by how many people it affects and how much: prefer news with real consequences over routine news. Do NOT choose routine government meetings, minor official announcements or ceremonies, insignificant local events, celebrity news or gossip, sensational headlines, opinion pieces, rumors or crime stories.
+- Prefer recent, verified news from reliable sources (for example Reuters, AP, BBC, WHO, UN); stay neutral, accurate and factual. For the politics story prefer diplomacy, agreements and policy decisions over fighting, with no graphic details.
 - The health story must be mainly about health (patients, diseases, medicine, hospitals, public health), not a general plan that only mentions health.
-- Avoid opinion pieces, rumors, crime stories and sensational news. Prefer a different source and a different country for each story (at least 2 different sources).
+- Prefer a different source and a different country for each story (at least 2 different sources).
 
 For each story give:
 - "news_id": the number of the item.
@@ -206,6 +210,7 @@ Level: {level_name} ({cefr}). {style}
 
 Return:
 - "stories": exactly 3 items in the same order. "en": American English ({en_min}–{en_max} characters, American spelling, ending with a period) that names the MENA country, city or people. "ar": a natural and accurate Modern Standard Arabic translation.
+- Each level must be genuinely different: its own vocabulary, sentence structure and difficulty, not a copy or light edit of another level.
 - "words": exactly 20 useful vocabulary words suited to this level (nouns, verbs, adjectives or adverbs). Never choose articles, prepositions, pronouns, conjunctions, auxiliary verbs or personal names. Each "en" is a single word copied exactly as it appears in your texts (lowercase unless a proper noun); "ar" is its Arabic meaning in that sentence.
 - "translations": an Arabic gloss for EVERY distinct word in your 3 texts ("word" lowercase as it appears without surrounding punctuation, keeping apostrophes and hyphens).
 - Audio limit: the 3 English texts plus the 20 words must total at most {audio_max} characters.
@@ -213,18 +218,35 @@ Return:
 """
 
 
-def level_prompt(facts: dict, feedback) -> str:
+def level_prompt(facts: dict, feedback, used_words=()) -> str:
     lines = ["Stories and facts:"]
     for n, s in enumerate(facts["stories"], 1):
         lines.append(f"{n}. [{s['category']}, {s['country']}] " + " ".join(f.strip() for f in s["facts"]))
+    if used_words:
+        lines += ["", "Vocabulary already taught in another level today (choose different words that suit your level): "
+                  + ", ".join(sorted(used_words))]
     if feedback:
         lines += ["", "Your previous answer was rejected. Fix these problems:"] + [f"- {f}" for f in feedback]
     return "\n".join(lines)
 
 
-def validate_level(data: dict, level: str, known: dict, budget: int | None) -> list[str]:
+# أقصى عدد كلمات مشتركة مسموح بين قائمة مستوى وقائمة مستوى آخر في اليوم نفسه
+MAX_SHARED_WORDS = 6
+
+
+def validate_level(data: dict, level: str, known: dict, budget: int | None, others: dict | None = None) -> list[str]:
     cfg = LEVELS[level]
     errors = []
+    for other, prev in (others or {}).items():  # المستويات مختلفة فعلًا: نصوص وكلمات
+        prev_words = {w["en"].lower() for w in prev["words"]} if isinstance(prev["words"][0], dict) else {w[0].lower() for w in prev["words"]}
+        shared = prev_words & {w.get("en", "").strip().lower() for w in data.get("words", [])}
+        if len(shared) > MAX_SHARED_WORDS:
+            errors.append(f"{len(shared)} of your words are already used by the {other} level ({', '.join(sorted(shared))}); "
+                          f"at most {MAX_SHARED_WORDS} may repeat. Choose different words suited to your level")
+        prev_texts = {st["en"].strip().lower() for st in prev["stories"]}
+        for n, st in enumerate(data.get("stories", []), 1):
+            if st.get("en", "").strip().lower() in prev_texts:
+                errors.append(f"story {n}: identical to the {other} level; rewrite it for your level")
     stories, words, exercises = data.get("stories", []), data.get("words", []), data.get("exercises", [])
     if len(stories) != STORIES:
         errors.append(f"need exactly {STORIES} stories, got {len(stories)}")
@@ -472,7 +494,10 @@ def prepare(day: datetime, model: str, daily_cap: int, text_levels: list[str], a
         cfg = LEVELS[level]
         system = LEVEL_PROMPT.format(level_name=level, **{k: cfg[k] for k in ("cefr", "style", "en_min", "en_max", "audio_max")})
         budget = cfg["audio_max"] if level in audio_levels else None
-        data, cost = _ask(lambda fb: level_prompt(facts, fb), lambda d, lv=level, b=budget: validate_level(d, lv, known, b),
+        done = dict(results)
+        used = {(w["en"] if isinstance(w, dict) else w[0]).lower() for r in done.values() for w in r["words"]}
+        data, cost = _ask(lambda fb, u=used: level_prompt(facts, fb, u),
+                          lambda d, lv=level, b=budget, o=done: validate_level(d, lv, known, b, o),
                           system, LEVEL_SCHEMA, model, key, level)
         total += cost
         if data is not None:

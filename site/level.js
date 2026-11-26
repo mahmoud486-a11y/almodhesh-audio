@@ -16,8 +16,15 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     // خانة «المستوى» الموجودة: يتغير نص المستوى فقط ليطابق اختيار المتعلم (العنصر وتنسيقه كما هما)
+    // خانة «المستوى» الموجودة: تعرض المستوى المختار في الدروس متعددة المستويات فقط،
+    // وتبقى بنصها الأصلي (A2–B1) في الدروس القديمة ذات المستوى الواحد (يتغير النص فقط، والتنسيق كما هو)
     const stat = [...document.querySelectorAll(".stats span")].find(el => el.textContent.includes("المستوى"));
-    if (stat) stat.textContent = stat.textContent.replace(/[ABC][12]–[ABC][12]/, LEVELS[level].cefr);
+    const statOriginal = stat ? stat.textContent : "";
+    function adaptLabel() {
+      if (!stat) return;
+      const multiLevel = !!(lessons[activeKey] && lessons[activeKey].exercises);
+      stat.textContent = multiLevel ? statOriginal.replace(/[ABC][12]–[ABC][12]/, LEVELS[level].cefr) : statOriginal;
+    }
 
     const bar = document.createElement("div");
     bar.className = "level-switch";
@@ -44,6 +51,7 @@
       [document.getElementById("playAll20"), "def"]
     ].filter(([el]) => el).map(([el, kind]) => ({ el, kind, html: el.innerHTML }));
     function adapt() {
+      adaptLabel();
       const n = activeStories.length;
       targets.forEach(t => {
         if (n === 6 || !NUM[n]) { t.el.innerHTML = t.html; return; }

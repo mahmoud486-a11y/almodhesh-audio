@@ -153,7 +153,8 @@ def ml_level_answer(level):
     n = ML_WORDS_PER_SENTENCE[level]
     stories, used = [], []
     for i, c in enumerate(ML_COUNTRIES):
-        chunk = [ML_POOL[(i * n + k) % len(ML_POOL)] for k in range(n)]
+        offset = {"beginner": 0, "intermediate": 20, "advanced": 36}[level]  # كلمات مختلفة لكل مستوى
+        chunk = [ML_POOL[(offset + i * n + k) % len(ML_POOL)] for k in range(n)]
         used += chunk
         lv_ar = {"beginner": "المبتدئ", "intermediate": "المتوسط", "advanced": "المتقدم"}[level]
         stories.append({"en": f"{c} {level} " + " ".join(chunk) + ".", "ar": f"جملة عربية {i + 1} للمستوى {lv_ar}"})
@@ -183,6 +184,16 @@ class MultiLevelValidationTests(unittest.TestCase):
         bad["stories"][0]["en"] = bad["stories"][0]["en"].replace("Egypt beginner", "Egypt as beginner")
         bad["words"][0] = {"en": "as", "ar": "بينما"}
         self.assertTrue(any("'as' is a function word" in e for e in ml.validate_level(bad, "beginner", {}, None)))
+
+    def test_levels_must_differ(self):
+        inter = ml.build_level(ml_level_answer("intermediate"), ml_facts_answer(), news_items(), "claude")
+        copy = ml_level_answer("intermediate")
+        errs = " | ".join(ml.validate_level(copy, "intermediate", {}, None, {"intermediate": inter}))
+        self.assertIn("already used by the intermediate level", errs)
+        self.assertIn("identical to the intermediate level", errs)
+        self.assertEqual(ml.validate_level(ml_level_answer("advanced"), "advanced", {}, None, {"intermediate": inter}), [])
+        prompt = ml.level_prompt(ml_facts_answer(), [], {"economy", "health"})
+        self.assertIn("already taught in another level today", prompt)
 
     def test_exercises_are_checked(self):
         bad = ml_level_answer("intermediate")

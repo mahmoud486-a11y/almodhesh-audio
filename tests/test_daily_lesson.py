@@ -261,7 +261,7 @@ class PipelineTests(unittest.TestCase):
         ]
         for p in self.patches:
             p.start()
-        self.day = "2026-11-25"
+        self.day = "2027-01-05"  # تاريخ مستقبلي بلا درس (درس 25 نوفمبر صار حقيقيًا في الموقع)
         self.lesson_path = site / "lessons" / f"{self.day}.json"
         self.calls = []
 

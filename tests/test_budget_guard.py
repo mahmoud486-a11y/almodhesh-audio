@@ -1,5 +1,6 @@
 """التحقق من حارس الميزانية: التسعير، إعادة ضبط الشهر، التزامن، حفظ السجلات عند الفشل، الإشعار، ومحاكاة شهر."""
 import contextlib
+from datetime import datetime, timezone
 import io
 import json
 import subprocess
@@ -26,7 +27,9 @@ STEPS = {s.get("name"): s for s in WORKFLOW["jobs"]["lesson"]["steps"]}
 class Isolated(unittest.TestCase):
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
+        self.now = datetime(2026, 12, 10, 10, 0, tzinfo=timezone.utc)  # وقت الفوترة الفعلي في الاختبار
         self.patches = [mock.patch.object(dl, "AI_USAGE_PATH", self.tmp / "ai-usage.json"),
+                        mock.patch.object(budget, "utc_now", lambda: self.now),
                         mock.patch.object(ml.time, "sleep", lambda s: None)]
         for p in self.patches:
             p.start()
@@ -59,7 +62,8 @@ class Pricing(unittest.TestCase):
 
 class MonthlyReset(Isolated):
     def test_new_month_starts_from_zero_even_if_last_month_was_full(self):
-        dl.write_json(dl.AI_USAGE_PATH, [{"date": "2026-11-30", "est_cost_usd": 2.39}])
+        dl.write_json(dl.AI_USAGE_PATH, [{"date": "2026-11-30", "at": "2026-11-30T10:00:00Z", "est_cost_usd": 2.39}])
+        self.now = datetime(2026, 12, 1, 10, 0, tzinfo=timezone.utc)
         u = {"input_tokens": 1000, "output_tokens": 500, "model": "claude-haiku-5-5"}
         with mock.patch.object(dl, "call_claude", lambda *a, **k: ({"ok": 1}, u)):
             data, cost, reasons, blocked = self.ask("2026-12-01")  # أول يوم من الشهر الجديد
@@ -67,14 +71,32 @@ class MonthlyReset(Isolated):
         self.assertIsNotNone(data)
 
     def test_same_month_full_blocks(self):
-        dl.write_json(dl.AI_USAGE_PATH, [{"date": "2026-12-03", "est_cost_usd": 2.399}])
+        dl.write_json(dl.AI_USAGE_PATH, [{"date": "2026-12-03", "at": "2026-12-03T10:00:00Z", "est_cost_usd": 2.399}])
         data, cost, reasons, blocked = self.ask("2026-12-10")
         self.assertTrue(blocked)
 
-    def test_month_spent_uses_lesson_date_prefix(self):
-        log = [{"date": "2026-11-30", "est_cost_usd": 1}, {"date": "2026-12-01", "est_cost_usd": 2}]
+    def test_month_follows_actual_usage_time_not_lesson_date(self):
+        # إصلاح درس 26 نوفمبر يُنفَّذ في 2 ديسمبر: يُحسب على ديسمبر (وقت الاستهلاك)، لا نوفمبر
+        log = [{"date": "2026-11-26", "at": "2026-12-02T15:00:00Z", "est_cost_usd": 0.5},
+               {"date": "2026-11-30", "at": "2026-11-30T10:00:00Z", "est_cost_usd": 1}]
         self.assertEqual(budget.month_spent(log, "2026-11"), 1)
-        self.assertEqual(budget.month_spent(log, "2026-12"), 2)
+        self.assertEqual(budget.month_spent(log, "2026-12"), 0.5)
+
+    def test_legacy_entries_without_time_fall_back_to_lesson_date(self):
+        self.assertEqual(budget.month_spent([{"date": "2026-11-23", "est_cost_usd": 3}], "2026-11"), 3)
+
+    def test_repair_of_old_lesson_is_charged_to_the_month_it_happens(self):
+        dl.dl_usage = None
+        self.now = datetime(2026, 12, 2, 15, 0, tzinfo=timezone.utc)
+        cost = dl.record_ai_usage("2026-11-26", {"input_tokens": 10000, "output_tokens": 4000, "model": "claude-sonnet-5-5", "step": "review"}, 1)
+        log = dl.read_json(dl.AI_USAGE_PATH, [])
+        self.assertEqual(budget.entry_month(log[-1]), "2026-12")
+        self.assertAlmostEqual(budget.month_spent(log, "2026-12"), cost, places=5)
+        self.assertEqual(budget.month_spent(log, "2026-11"), 0)
+
+    def test_utc_month_boundary(self):
+        log = [{"at": "2026-11-30T23:59:59Z", "est_cost_usd": 1}, {"at": "2026-12-01T00:00:00Z", "est_cost_usd": 2}]
+        self.assertEqual((budget.month_spent(log, "2026-11"), budget.month_spent(log, "2026-12")), (1, 2))
 
 
 class Recording(Isolated):
@@ -108,7 +130,7 @@ class Recording(Isolated):
 
 class Concurrency(Isolated):
     def test_second_run_sees_first_runs_spend(self):
-        dl.write_json(dl.AI_USAGE_PATH, [{"date": "2026-12-04", "est_cost_usd": 2.398}])  # كتبته تشغيلة أخرى للتو
+        dl.write_json(dl.AI_USAGE_PATH, [{"date": "2026-12-04", "at": "2026-12-04T10:00:00Z", "est_cost_usd": 2.398}])  # كتبته تشغيلة أخرى للتو
         _, _, _, blocked = self.ask("2026-12-04")
         self.assertTrue(blocked)  # يُعاد قراءة السجل قبل كل طلب
 
@@ -184,19 +206,119 @@ class Notification(unittest.TestCase):
 
 
 class MonthSimulation(unittest.TestCase):
-    def test_realistic_month_never_exceeds_cap_and_completes_most_lessons(self):
+    def test_realistic_month_never_exceeds_cap_even_when_runs_die(self):
         import random
         import simulate_month as sm
-        with mock.patch.object(ml, "failures_path", lambda: dl.AI_USAGE_PATH.with_name("validation-failures.json")):
-            real_mod = (dl.AI_USAGE_PATH, ml.validate_facts)
-            try:
-                with contextlib.redirect_stdout(io.StringIO()):
-                    res = [sm.simulate(sm.SCENARIOS["واقعي"], random.Random(i)) for i in range(40)]
-            finally:
-                dl.AI_USAGE_PATH, ml.validate_facts = real_mod
+        with contextlib.redirect_stdout(io.StringIO()):
+            res = [sm.simulate(sm.SCENARIOS["واقعي"], random.Random(i), die=0.10) for i in range(25)]
         self.assertLessEqual(max(r["spent"] for r in res), budget.MAX_MONTHLY_BUDGET_USD)
         self.assertGreaterEqual(sum(r["done"] for r in res) / len(res), 14)
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Durability(Isolated):
+    def setUp(self):
+        super().setUp()
+        import ledger
+        self.ledger = ledger
+        self.env = mock.patch.dict("os.environ", {"GITHUB_RUN_ID": "100", "GITHUB_RUN_ATTEMPT": "1"})
+        self.env.start()
+        self.addCleanup(self.env.stop)
+
+    def new_run(self, rid):
+        self.env.stop()
+        self.env = mock.patch.dict("os.environ", {"GITHUB_RUN_ID": str(rid), "GITHUB_RUN_ATTEMPT": "1"})
+        self.env.start()
+
+    def spend(self, amount, run="100-1"):
+        log = dl.read_json(dl.AI_USAGE_PATH, [])
+        log.append({"date": "2026-12-10", "at": "2026-12-10T10:00:00Z", "est_cost_usd": amount, "run_id": run, "step": "x", "attempt": 1, "model": "m"})
+        dl.write_json(dl.AI_USAGE_PATH, log)
+
+    def test_clean_run_leaves_no_penalty(self):
+        self.ledger.begin("2026-12-10", self.now)
+        self.spend(0.1)
+        self.ledger.end(self.now)
+        self.new_run(101)
+        self.assertEqual(self.ledger.reconcile(self.now), 0.0)
+
+    def test_runner_death_charges_the_reservation_to_the_month(self):
+        self.ledger.begin("2026-12-10", self.now)  # ثم مات المُشغِّل: لا end ولا سجل
+        reserve = self.ledger.run_reserve(self.now)
+        self.new_run(101)
+        penalty = self.ledger.begin("2026-12-11", self.now)
+        self.assertAlmostEqual(penalty, reserve, places=4)
+        self.assertAlmostEqual(budget.month_spent(dl.read_json(dl.AI_USAGE_PATH, []), "2026-12"), reserve, places=4)
+
+    def test_cancellation_with_partial_records_charges_only_the_remainder(self):
+        self.ledger.begin("2026-12-10", self.now)
+        reserve = self.ledger.run_reserve(self.now)
+        self.spend(0.05)  # سجلتها always() قبل الإلغاء
+        self.new_run(101)
+        penalty = self.ledger.reconcile(self.now)
+        self.assertAlmostEqual(penalty, reserve - 0.05, places=4)
+        self.assertAlmostEqual(budget.month_spent(dl.read_json(dl.AI_USAGE_PATH, []), "2026-12"), reserve, places=4)
+
+    def test_penalty_counts_in_following_budget_checks(self):
+        self.ledger.begin("2026-12-10", self.now)
+        dl.write_json(dl.AI_USAGE_PATH, [{"date": "2026-12-01", "at": "2026-12-01T10:00:00Z", "est_cost_usd": 2.20}])
+        self.new_run(101)
+        self.ledger.begin("2026-12-11", self.now)  # 2.20 + غرامة (حتى 0.35) → لا يتسع درس جديد
+        _, _, _, blocked = self.ask("2026-12-11", reserve_after=0.12)
+        self.assertTrue(blocked)
+
+    def test_reserve_is_capped_and_never_exceeds_what_is_left(self):
+        self.assertEqual(self.ledger.run_reserve(self.now), self.ledger.RUN_RESERVE_CAP)
+        dl.write_json(dl.AI_USAGE_PATH, [{"date": "2026-12-01", "at": "2026-12-01T10:00:00Z", "est_cost_usd": 2.30}])
+        self.assertAlmostEqual(self.ledger.run_reserve(self.now), 0.10, places=4)
+        self.assertGreater(self.ledger.RUN_RESERVE_CAP, 3 * 0.11)  # أكبر من ثلاثة دروس عادية
+
+    def test_reconcile_is_idempotent(self):
+        self.ledger.begin("2026-12-10", self.now)
+        self.new_run(101)
+        first = self.ledger.begin("2026-12-11", self.now)
+        self.ledger.end(self.now)  # التشغيلة 101 انتهت بسلام
+        self.new_run(102)
+        self.assertEqual(self.ledger.begin("2026-12-12", self.now), 0.0)  # لا تُحتسب مرتين
+        self.assertGreater(first, 0)
+
+    def test_recover_removes_penalty_and_adds_real_records(self):
+        import recover_usage
+        self.ledger.begin("2026-12-10", self.now)
+        self.new_run(101)
+        self.ledger.begin("2026-12-11", self.now)
+        real = [{"date": "2026-12-10", "at": "2026-12-10T10:00:00Z", "est_cost_usd": 0.09, "run_id": "100-1", "step": "facts", "attempt": 1, "model": "m"}]
+        merged, added, removed = recover_usage.merge(dl.read_json(dl.AI_USAGE_PATH, []), real)
+        self.assertEqual((added, removed), (1, 1))
+        self.assertAlmostEqual(budget.month_spent(merged, "2026-12"), 0.09, places=4)
+        again, added2, _ = recover_usage.merge(merged, real)  # لا تكرار عند إعادة الدمج
+        self.assertEqual(added2, 0)
+
+    def test_timeout_is_charged_worst_case_but_http_error_is_not(self):
+        class Timeout(Exception):
+            pass
+        class Http(Exception):
+            status_code = 400
+        def fake(kind):
+            def f(prompt, model, system=None, schema=None, effort="medium", max_tokens=16000):
+                raise kind("x")
+            return f
+        with mock.patch.object(dl, "call_claude", fake(Timeout)):
+            self.ask("2026-12-10", max_tokens=1000)
+        worst = [e for e in dl.read_json(dl.AI_USAGE_PATH, []) if e.get("ambiguous")]
+        self.assertEqual(len(worst), 3)
+        self.assertTrue(all(e["output_tokens"] == 1000 for e in worst))
+        dl.write_json(dl.AI_USAGE_PATH, [])
+        with mock.patch.object(dl, "call_claude", fake(Http)):
+            self.ask("2026-12-10", max_tokens=1000)
+        self.assertTrue(all(e["output_tokens"] == 0 for e in dl.read_json(dl.AI_USAGE_PATH, [])))
+
+    def test_workflow_reserves_run_before_any_paid_call_and_aborts_if_push_fails(self):
+        step = STEPS["Reserve this run in the ledger"]
+        self.assertIn("ledger.py begin", step["run"])
+        self.assertIn("exit 1", step["run"])  # فشل الدفع يوقف التشغيلة قبل أي طلب مدفوع
+        names = [s.get("name") for s in WORKFLOW["jobs"]["lesson"]["steps"]]
+        self.assertLess(names.index("Reserve this run in the ledger"), names.index("Run"))

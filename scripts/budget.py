@@ -5,12 +5,14 @@
 
 - السقف 2.40 دولار شهريًا؛ ويمكن خفضه بالمتغير CLAUDE_MONTHLY_BUDGET_USD لكن لا يمكن رفعه فوق 2.40.
 - أسوأ تكلفة = (أقصى مدخلات مقدَّرة بتحفظ) × سعر الإدخال + max_tokens × سعر الإخراج (الإخراج لا يتجاوز max_tokens أبدًا).
-- كل طلب يُسجَّل في logs/ai-usage.json بتكلفته الفعلية، بما فيه المرفوض والفاشل؛ والشهر محسوب من تاريخ الدرس.
+- كل طلب يُسجَّل في logs/ai-usage.json بتكلفته الفعلية، بما فيه المرفوض والفاشل، وبتاريخ وقته الفعلي (UTC)؛
+  فإصلاح درس قديم يُحسب في شهر إجرائه لا شهر الدرس. انتهاء المهلة (طلب قد يكون وصل) يُحتسب بأسوأ تكلفة.
 """
 from __future__ import annotations
 
 import math
 import os
+from datetime import datetime, timezone
 
 MAX_MONTHLY_BUDGET_USD = 2.40
 CHARS_PER_TOKEN = 2.0  # تقدير متحفظ: المُجزّئ الحديث يعطي رموزًا أكثر بنحو 30%، والعربية أكثر كلفة من الإنجليزية
@@ -43,9 +45,23 @@ def cost_of(prices: dict, model: str, input_tokens: int, output_tokens: int, def
     return input_tokens / 1e6 * inp + output_tokens / 1e6 * out
 
 
+def utc_now() -> datetime:
+    """وقت الفوترة الفعلي (UTC). دالة منفصلة كي يمكن تثبيتها في الاختبارات والمحاكاة."""
+    return datetime.now(timezone.utc)
+
+
+def billing_month(now: datetime | None = None) -> str:
+    return (now or utc_now()).strftime("%Y-%m")
+
+
+def entry_month(e: dict) -> str:
+    """شهر الطلب بتاريخ الاستهلاك الفعلي (حقل at)، لا بتاريخ الدرس؛ والسجلات القديمة بلا at تعود لتاريخ الدرس."""
+    return str(e.get("at") or e.get("date") or "")[:7]
+
+
 def month_spent(log: list[dict], month: str) -> float:
-    """مجموع التكلفة المسجّلة لدروس الشهر (month بصيغة YYYY-MM)."""
-    return sum(float(e.get("est_cost_usd", 0)) for e in log if str(e.get("date", ""))[:7] == month)
+    """مجموع التكلفة المسجّلة في شهر الفوترة (month بصيغة YYYY-MM) بحسب تاريخ الاستهلاك الفعلي."""
+    return sum(float(e.get("est_cost_usd", 0)) for e in log if entry_month(e) == month)
 
 
 def check(spent: float, worst_call: float, reserve_after: float, limit: float | None = None) -> tuple[bool, str]:

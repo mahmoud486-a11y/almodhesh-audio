@@ -29,6 +29,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import budget  # noqa: E402
 import build_site_data  # noqa: E402
 import generate_audio as tts  # noqa: E402
 
@@ -448,10 +449,11 @@ def to_lesson(data: dict, items: list[NewsItem], day: datetime) -> dict:
 
 
 def record_ai_usage(day: str, usage: dict, attempt: int) -> float:
-    import budget  # التسعير نفسه المستخدم في حارس الميزانية (بما فيه تسعير السياق الطويل)
     cost = budget.cost_of(MODEL_PRICES, usage["model"], usage["input_tokens"], usage["output_tokens"], DEFAULT_LESSON_MODEL)
     log = read_json(AI_USAGE_PATH, [])
-    log.append({"date": day, "attempt": attempt, **usage, "est_cost_usd": round(cost, 5)})
+    log.append({"date": day, "attempt": attempt, **usage, "est_cost_usd": round(cost, 5),
+                "at": budget.utc_now().strftime("%Y-%m-%dT%H:%M:%SZ"),  # وقت الاستهلاك الفعلي، أساس حساب شهر الفوترة
+                "run_id": (os.environ.get("GITHUB_RUN_ID", "") + "-" + os.environ.get("GITHUB_RUN_ATTEMPT", "1")) if os.environ.get("GITHUB_RUN_ID") else "local"})
     write_json(AI_USAGE_PATH, log[-2000:])
     return cost
 
@@ -637,7 +639,11 @@ def main(argv=None) -> int:
     ok = True
     if args.command in ("prepare", "run"):
         # حجم الدرس الصوتي لا يتجاوز الحد اليومي؛ والاستهلاك الفعلي يُفحص مرة أخرى قبل التوليد
-        ok = ml.prepare(day, model, args.daily_max_chars, text_levels, audio_levels) is not None
+        try:
+            ok = ml.prepare(day, model, args.daily_max_chars, text_levels, audio_levels) is not None
+        finally:
+            import ledger  # يُغلق دفتر التشغيلات (إن فُتح) كي لا تُحتسب التشغيلة منقطعة
+            ledger.end()
     if args.command == "audio" or (args.command == "run" and ok):
         ok = ml.generate_audio(args.daily_max_chars, audio_levels) and ok
     if args.command in ("run", "audio"):

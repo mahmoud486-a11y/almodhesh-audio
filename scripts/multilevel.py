@@ -342,8 +342,9 @@ REVIEW_SCHEMA = {
     "properties": {"corrections": {"type": "array", "items": {
         "type": "object",
         "properties": {"id": {"type": "string"}, "ar": {"type": "string"}, "issue": {"type": "string"}},
-        "required": ["id", "ar", "issue"], "additionalProperties": False}}},
-    "required": ["corrections"],
+        "required": ["id", "ar", "issue"], "additionalProperties": False}},
+        "escalate": {"type": "array", "items": {"type": "string"}}},
+    "required": ["corrections", "escalate"],
     "additionalProperties": False,
 }
 REVIEW_PROMPT = """You are a senior Arabic editor and English–Arabic translator reviewing a lesson for "Almodhesh" (المدهش), where Arabic speakers learn English from news, before it is published.
@@ -358,7 +359,12 @@ Each item has an id, the English source (and sometimes the sentence it comes fro
 - Question items ("q:"): a natural Arabic rendering of the English question.
 - Keep numbers as digits exactly as in the English. Keep proper names in their common Arabic spelling.
 
-Return "corrections" with only the items that need a change: "id", the full corrected Arabic in "ar", and a short English "issue". If everything is already perfect, return an empty list."""
+Return "corrections" with only the items that need a change: "id", the full corrected Arabic in "ar", and a short English "issue". If everything is already perfect, return an empty list.
+
+Also return "escalate": the ids (at most 20, normally none or very few) of items whose correct Arabic needs deeper linguistic judgment than a routine pass — contested political or legal terminology, idioms, proper-name spelling, or sentences where you are not fully sure of the best rendering. Those items get a second, deeper review; do not escalate routine items."""
+
+REVIEW_PROMPT_DEEP = REVIEW_PROMPT.split("Also return")[0] + """
+This is a deep second review of a few hard items, with a current Arabic text for each. Think carefully about the most accurate, natural and grammatical Modern Standard Arabic and return a correction for every item that can still be improved. Return "escalate" as an empty list."""
 
 ARABIC_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
 
@@ -394,13 +400,17 @@ def review_items(lesson: dict, levels=None, known=None) -> dict:
         items[f"topic:{i}"] = {"en": "Short title for: " + st["en"], "ar": st["topic"]}
     for lv in (levels or LEVEL_ORDER):
         v = lesson["levels"][lv]
-        ctx = lambda word: next((st["en"] for st in v["stories"] if word.lower() in tokens(st["en"])), "")
+        examples = v.get("examples", {})
+        ctx = lambda word: next((st["en"] for st in v["stories"] if word.lower() in tokens(st["en"])),
+                                examples.get(word.lower(), {}).get("en", ""))  # كلمة خارج النص: مثالها السياقي
         for i, st in enumerate(v["stories"]):
             items[f"s:{lv}:{i}"] = {"en": st["en"], "ar": st["ar"]}
         for i, (en, ar) in enumerate(v["words"]):
             items[f"w:{lv}:{i}"] = {"en": en, "sentence": ctx(en), "ar": ar}
         for i, e in enumerate(v["exercises"]):
             items[f"q:{lv}:{i}"] = {"en": e["question"], "ar": e["question_ar"]}
+        for word, ex in examples.items():  # أمثلة الكلمات السياقية (عربيتها تُدقَّق أيضًا)
+            items[f"x:{lv}:{word}"] = {"en": ex["en"], "ar": ex["ar"]}
         for word, ar in v["translations"].items():
             if word.lower() in known:
                 continue
@@ -448,14 +458,19 @@ def apply_review(lesson: dict, corrections: list[dict]) -> None:
             e["question_ar"] = polish_arabic(by_id.get(f"q:{lv}:{i}", e["question_ar"]))
         for word in list(v["translations"]):
             v["translations"][word] = by_id.get(f"g:{lv}:{word}", v["translations"][word])
+        for word, ex in v.get("examples", {}).items():
+            ex["ar"] = by_id.get(f"x:{lv}:{word}", ex["ar"])
 
 
 # ---------------------------------------------------------------- الميزانية وسجل الرفض
-MAX_TOKENS = {"facts": 6000, "level": 16000, "level_fallback": 7000, "review": 8000}
+MAX_TOKENS = {"facts": 6000, "level": 16000, "level_fallback": 7000, "review": 6500, "review_deep": 4500}
+REVIEW_EFFORT = "medium"   # التدقيق الروتيني
+DEEP_EFFORT = "high"       # مراجعة عميقة للعناصر المعقدة فقط، إن اتسعت الميزانية
+MAX_ESCALATE = 20
 FALLBACK_LEVEL_MODEL = "claude-sonnet-5-5"  # احتياط لمستوى فاشل فقط، وبشرط أن تتسع الميزانية
 LEVEL_ATTEMPTS = 3        # محاولات Haiku لكل مستوى
 FALLBACK_ATTEMPTS = 2     # محاولات Sonnet لكل مستوى فاشل (كل محاولة تمر بحارس الميزانية)
-RESERVE_INPUT_TOKENS = {"level": 4000, "review": 25000}  # تقدير متحفظ لمدخلات الخطوات القادمة (المقاس: 1.7 ألف و16 ألف)
+RESERVE_INPUT_TOKENS = {"level": 4000, "review": 22000}  # تقدير متحفظ لمدخلات الخطوات القادمة (المقاس: 1.7 ألف و16 ألف)
 
 
 def failures_path() -> Path:
@@ -497,7 +512,7 @@ def _ask(prompt_fn, validate_fn, system, schema, model, key, label, attempts=3, 
         prompt = prompt_fn(feedback)
         in_tokens = budget.estimate_input_tokens(system, prompt)
         worst = worst_cost(model, in_tokens, max_tokens)
-        spent = budget.month_spent(read_json(dl.AI_USAGE_PATH, []), key[:7])
+        spent = budget.month_spent(read_json(dl.AI_USAGE_PATH, []), budget.billing_month())  # شهر الفوترة الفعلي، لا شهر الدرس
         allowed, why = budget.check(spent, worst, reserve_after)
         if not allowed:
             print(f"{label}: لم يُرسَل الطلب — {why}")
@@ -511,9 +526,12 @@ def _ask(prompt_fn, validate_fn, system, schema, model, key, label, attempts=3, 
             print(f"  فشل الطلب: {msg}")
             if isinstance(e, ClaudeCallError):  # حوسب على الرد: يُسجَّل بتكلفته الفعلية
                 cost += dl.record_ai_usage(key, {**e.usage, "step": label, "error": True}, attempt)
-            else:  # لم يصل رد: نسجّل تكلفة المدخلات المقدَّرة فقط (احتياطًا)
+            elif isinstance(getattr(e, "status_code", None), int):  # رفضه الخادم برمز حالة: لم يُولَّد شيء، نحتسب المدخلات فقط
                 cost += dl.record_ai_usage(key, {"input_tokens": in_tokens, "output_tokens": 0, "model": model,
                                                  "step": label, "error": True}, attempt)
+            else:  # انتهاء مهلة/انقطاع اتصال: قد يكون الطلب وصل وولّد ردًا؛ نحتسب أسوأ تكلفة (max_tokens كاملة) احتياطًا
+                cost += dl.record_ai_usage(key, {"input_tokens": in_tokens, "output_tokens": max_tokens, "model": model,
+                                                 "step": label, "error": True, "ambiguous": True}, attempt)
             reasons = [f"API/response error: {msg}"]
             log_failure(key, label, model, attempt, reasons, "error")
             feedback = []
@@ -551,26 +569,60 @@ def generate_level(level, facts, items, done, known, key, model, reserve_after):
     return data, cost + extra, FALLBACK_LEVEL_MODEL
 
 
-def run_review(lesson: dict, path: Path, levels=None) -> bool:
+def run_review(lesson: dict, path: Path, levels=None, only=None) -> bool:
+    """تدقيق عربي تكيّفي: Sonnet بجهد medium لكل العناصر، ثم مراجعة عميقة (high) للعناصر التي يعلّمها المدقّق
+    معقدة فقط، وبشرط أن تتسع الميزانية. تفشل المراجعة الأساسية = لا يُنشر الدرس؛ فشل العميقة = تبقى نتائج الأساسية."""
     model = review_model()
     items = review_items(lesson, levels, known_without(lesson["key"]))
-    data, cost, reasons, _ = _ask(lambda fb: review_prompt(items, fb), lambda d: validate_review(d, items),
-                                  REVIEW_PROMPT, REVIEW_SCHEMA, model, lesson["key"], "review", effort="high",
-                                  max_tokens=MAX_TOKENS["review"])
+    if only is not None:
+        items = {k: v for k, v in items.items() if k in only}
+
+    def pass1_validate(d):
+        errs = validate_review(d, items)
+        errs += [f"escalate: unknown id {i!r}" for i in d.get("escalate", []) if i not in items]
+        return errs
+
+    def first(effort):
+        return _ask(lambda fb: review_prompt(items, fb), pass1_validate, REVIEW_PROMPT, REVIEW_SCHEMA, model,
+                    lesson["key"], "review", effort=effort, max_tokens=MAX_TOKENS["review"])
+    data, cost, reasons, _ = first(REVIEW_EFFORT)
+    if data is None and any("effort" in r.lower() for r in reasons):  # النموذج لا يقبل medium: نعود إلى high
+        data, extra, reasons, _ = first(DEEP_EFFORT)
+        cost += extra
     if data is None:
         lesson["pending_review"] = True
         write_json(path, lesson)
         summary(f"❌ تعذر إكمال التدقيق اللغوي (تكلفة ${cost:.4f}): {'; '.join(reasons)[:300]}. "
                 "لا يُسجَّل الدرس ولا يُنشر؛ يبقى آخر درس صالح.")
         return False
-    apply_review(lesson, data["corrections"])
+    corrections = {c["id"]: c for c in data["corrections"]}
+    escalate = list(dict.fromkeys(i for i in data.get("escalate", []) if i in items))[:MAX_ESCALATE]
+    deep_done = False
+    if escalate:
+        current = {i: {**items[i], "ar": corrections[i]["ar"] if i in corrections else items[i]["ar"]} for i in escalate}
+        deep, extra, why, blocked = _ask(
+            lambda fb: review_prompt(current, fb), lambda d: validate_review(d, current), REVIEW_PROMPT_DEEP,
+            REVIEW_SCHEMA, model, lesson["key"], "review-deep", effort=DEEP_EFFORT, max_tokens=MAX_TOKENS["review_deep"],
+            attempts=2)
+        cost += extra
+        if deep is not None:
+            deep_done = True
+            for c in deep["corrections"]:
+                corrections[c["id"]] = c
+        else:
+            summary(f"ℹ️ المراجعة العميقة لـ {len(escalate)} عنصرًا لم تُنفَّذ ({'الميزانية' if blocked else 'فشل'}): "
+                    "بقيت نتائج التدقيق الأساسي.")
+    final = list(corrections.values())
+    apply_review(lesson, final)
     lesson.pop("pending_review", None)
-    lesson["review"] = {"model": model, "corrections": len(data["corrections"]),
-                        "issues": [{"id": c["id"], "issue": c["issue"]} for c in data["corrections"]],
+    lesson["review"] = {"model": model, "effort": REVIEW_EFFORT, "corrections": len(final), "escalated": len(escalate),
+                        "deep_review_done": deep_done,
+                        "issues": [{"id": c["id"], "issue": c["issue"]} for c in final],
                         "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
     mirror_default(lesson)
     write_json(path, lesson)
-    summary(f"🔍 التدقيق اللغوي ({model}): {len(data['corrections'])} تصحيحًا من {len(items)} نصًا عربيًا — تكلفة ${cost:.4f}")
+    summary(f"🔍 التدقيق اللغوي ({model}, {REVIEW_EFFORT}): {len(final)} تصحيحًا من {len(items)} نصًا عربيًا"
+            f"{f'، منها {len(escalate)} للمراجعة العميقة' if escalate else ''} — تكلفة ${cost:.4f}")
     return True
 
 

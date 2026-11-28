@@ -271,16 +271,22 @@ class PipelineTests(unittest.TestCase):
             code = dl.main(list(args) + ["--date", self.day])
         return code, out.getvalue()
 
-    def claude(self, bad_levels=(), bad_facts=False, review=None, haiku_bad=()):
+    def claude(self, bad_levels=(), bad_facts=False, review=None, haiku_bad=(), reject_medium=False):
         """Claude محاكى: يميّز طلب الحقائق وطلب كل مستوى وطلب التدقيق، ويسجّل الطلبات."""
         usage = {"input_tokens": 4000, "output_tokens": 3000, "model": "claude-haiku-5-5"}
         self.review_models = []
+        self.review_prompts = []
         answers = list(review or [])
 
         def fake(prompt, model, system=None, schema=None, effort="medium", **kw):
             if schema is ml.REVIEW_SCHEMA:
+                if reject_medium and effort == "medium":
+                    err = RuntimeError("400: effort 'medium' is not supported for this model")
+                    err.status_code = 400
+                    raise err
                 self.calls.append("review")
                 self.review_models.append((model, effort))
+                self.review_prompts.append(prompt)
                 return (answers.pop(0) if answers else {"corrections": []}), {**usage, "model": model}
             if schema is ml.FACTS_SCHEMA:
                 self.calls.append("facts")
@@ -378,7 +384,7 @@ class PipelineTests(unittest.TestCase):
         with mock.patch.object(ml, "known_without", return_value={}):  # لا ترجمات سابقة: كل القاموس يُدقَّق
             code, out = self.full_run(review=[fixes])
         self.assertEqual(code, 0, out)
-        self.assertEqual(self.review_models, [("claude-sonnet-5-5", "high")])
+        self.assertEqual(self.review_models, [("claude-sonnet-5-5", "medium")])  # روتيني: medium مرة واحدة
         lesson = json.loads(self.lesson_path.read_text(encoding="utf-8"))
         self.assertEqual(lesson["levels"]["beginner"]["stories"][0]["ar"], "جملة عربية مصححة، وواضحة")  # فاصلة عربية
         self.assertEqual(lesson["levels"]["advanced"]["words"][0][1], "طلاب")
@@ -468,7 +474,7 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(all(u["est_cost_usd"] > 0 for u in usage))
 
     def test_sonnet_fallback_is_refused_when_budget_cannot_cover_it(self):
-        usage = [{"date": f"{self.day[:7]}-01", "step": "x", "est_cost_usd": 2.20}]  # الشهر شبه مستنفد
+        usage = [{"date": f"{self.day[:7]}-01", "at": ml.budget.utc_now().strftime("%Y-%m-%dT%H:%M:%SZ"), "step": "x", "est_cost_usd": 2.20}]  # الشهر شبه مستنفد
         (self.tmp / "logs").mkdir(parents=True, exist_ok=True)
         (self.tmp / "logs" / "ai-usage.json").write_text(json.dumps(usage), encoding="utf-8")
         code, out = self.full_run(haiku_bad=("beginner",))
@@ -478,7 +484,7 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(any(f["kind"] == "budget" for f in failures))
 
     def test_budget_exhausted_sends_no_request_at_all(self):
-        usage = [{"date": f"{self.day[:7]}-01", "step": "x", "est_cost_usd": 2.39}]
+        usage = [{"date": f"{self.day[:7]}-01", "at": ml.budget.utc_now().strftime("%Y-%m-%dT%H:%M:%SZ"), "step": "x", "est_cost_usd": 2.39}]
         (self.tmp / "logs").mkdir(parents=True, exist_ok=True)
         (self.tmp / "logs" / "ai-usage.json").write_text(json.dumps(usage), encoding="utf-8")
         code, out = self.full_run()
@@ -562,6 +568,51 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(code, 0)
         fetch.assert_not_called()
         self.assertEqual(self.data("intermediate"), before)
+
+
+    # ----- التدقيق التكيفي
+    def lesson_json(self):
+        return json.loads(self.lesson_path.read_text(encoding="utf-8"))
+
+    def test_review_escalates_only_flagged_items_to_high_effort(self):
+        first = {"corrections": [{"id": "s:beginner:0", "ar": "جملة أولية", "issue": "x"}],
+                 "escalate": ["s:beginner:0", "w:advanced:0"]}
+        deep = {"corrections": [{"id": "s:beginner:0", "ar": "جملة نهائية دقيقة", "issue": "deep"}], "escalate": []}
+        with mock.patch.object(ml, "known_without", return_value={}):
+            code, out = self.full_run(review=[first, deep])
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.review_models, [("claude-sonnet-5-5", "medium"), ("claude-sonnet-5-5", "high")])
+        self.assertEqual(self.lesson_json()["levels"]["beginner"]["stories"][0]["ar"], "جملة نهائية دقيقة")
+        deep_prompt = self.review_prompts[1]
+        self.assertEqual(deep_prompt.count('"id"'), 2)  # العنصران المعلَّمان فقط، لا الدرس كله
+        self.assertIn("جملة أولية", deep_prompt)  # بنصه بعد التدقيق الأول
+        review = self.lesson_json()["review"]
+        self.assertEqual((review["escalated"], review["deep_review_done"], review["effort"]), (2, True, "medium"))
+
+    def test_failed_deep_review_keeps_first_pass_and_still_publishes(self):
+        first = {"corrections": [{"id": "s:beginner:0", "ar": "جملة أولية", "issue": "x"}], "escalate": ["s:beginner:0"]}
+        bad = {"corrections": [{"id": "nope", "ar": "x", "issue": "x"}], "escalate": []}
+        with mock.patch.object(ml, "known_without", return_value={}):
+            code, out = self.full_run(review=[first, bad, bad])
+        self.assertEqual(code, 0, out)
+        lesson = self.lesson_json()
+        self.assertNotIn("pending_review", lesson)
+        self.assertEqual(lesson["levels"]["beginner"]["stories"][0]["ar"], "جملة أولية")
+        self.assertFalse(lesson["review"]["deep_review_done"])
+
+    def test_first_pass_still_validates_every_item_and_numbers(self):
+        bad = {"corrections": [{"id": "s:beginner:0", "ar": "بلا أرقام", "issue": "x"}], "escalate": []}
+        # الجملة الأولى للمبتدئ تحوي رقمًا في النص الإنجليزي؛ حذفه مرفوض كما كان
+        with mock.patch.object(ml, "numbers_in", lambda text: ["99"] if any(c.isascii() and c.isalpha() for c in text) else []):
+            code, _ = self.full_run(review=[bad, bad, bad])
+        self.assertEqual(code, 1)
+        self.assertTrue(self.lesson_json().get("pending_review"))
+
+    def test_model_rejecting_medium_falls_back_to_high(self):
+        with mock.patch.object(ml, "known_without", return_value={}):
+            code, out = self.full_run(reject_medium=True)
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.review_models, [("claude-sonnet-5-5", "high")])
 
 
 if __name__ == "__main__":

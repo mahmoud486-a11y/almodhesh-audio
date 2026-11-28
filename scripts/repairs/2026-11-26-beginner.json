@@ -404,19 +404,58 @@
    "taking": [
     "contingent",
     "مشروط / مرهون بـ"
-   ]
-  },
-  "note": "الكلمات الثماني الجديدة مرتبطة بمواضيع الأخبار (دفاع، طيران، سعرات) لكنها ليست في نص المتقدم، لأن النص لا يحوي كلمات متقدمة كافية؛ والموقع لا يشترط وجود الكلمة في النص. تحتاج تدقيقًا عربيًا وتسجيلًا صوتيًا لـ 8 كلمات فقط (نحو 60 حرفًا).",
-  "optional_extra": {
+   ],
    "Pakistani": [
     "accord",
-    "اتفاق رسمي"
+    "اتفاق رسمي / معاهدة"
    ],
    "Emirates": [
     "resumption",
     "استئناف"
-   ],
-   "note": "كلمتان إضافيتان في القائمة الأصلية هما اسما علم/جنسية (Pakistani, Emirates) لا تصلحان كمفردات؛ لم أغيّرهما لأنك طلبت ثماني كلمات فقط. بديلان مقترحان إن وافقت."
+   ]
+  },
+  "note": "عشر كلمات بديلة مرتبطة بمواضيع الأخبار (دفاع، طيران، سعرات) لكنها ليست في نص المتقدم لأنه لا يحوي كلمات متقدمة كافية؛ الموقع لا يشترط وجود الكلمة في النص. لكل كلمة مثال سياقي بالإنجليزية والعربية يُدقَّق مع الباقي. تحتاج تسجيلًا صوتيًا لعشر كلمات فقط.",
+  "examples": {
+   "ratify": {
+    "en": "Parliament must ratify the defense agreement before it takes effect.",
+    "ar": "يجب أن يصادق البرلمان على اتفاقية الدفاع قبل أن تدخل حيز التنفيذ."
+   },
+   "curtail": {
+    "en": "The airline had to curtail its flights to the region for several weeks.",
+    "ar": "اضطرت شركة الطيران إلى تقليص رحلاتها إلى المنطقة لعدة أسابيع."
+   },
+   "stipulate": {
+    "en": "The new rule stipulates that every menu must show calorie counts.",
+    "ar": "تنص القاعدة الجديدة على أن تعرض كل قائمة طعام السعرات الحرارية."
+   },
+   "disclosure": {
+    "en": "Calorie disclosure helps customers make healthier choices.",
+    "ar": "يساعد الإفصاح عن السعرات الحرارية الزبائن على اتخاذ خيارات أصح."
+   },
+   "compliance": {
+    "en": "Restaurants will need to ensure compliance with the new rule.",
+    "ar": "سيتعين على المطاعم ضمان الامتثال للقاعدة الجديدة."
+   },
+   "bilateral": {
+    "en": "A bilateral agreement is made between two countries only.",
+    "ar": "الاتفاق الثنائي يُبرم بين دولتين فقط."
+   },
+   "ramifications": {
+    "en": "The ramifications of suspending flights can affect tourism.",
+    "ar": "قد تؤثر تداعيات تعليق الرحلات الجوية على السياحة."
+   },
+   "contingent": {
+    "en": "The plan is contingent on the approval of all three countries.",
+    "ar": "الخطة مشروطة بموافقة الدول الثلاث."
+   },
+   "accord": {
+    "en": "An accord is a formal agreement between countries.",
+    "ar": "الاتفاق الرسمي (accord) هو اتفاق رسمي بين الدول."
+   },
+   "resumption": {
+    "en": "The resumption of flights to Dubai is good news for travelers.",
+    "ar": "استئناف الرحلات إلى دبي خبر جيد للمسافرين."
+   }
   }
  }
 }

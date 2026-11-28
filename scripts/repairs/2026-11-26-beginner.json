@@ -1,0 +1,422 @@
+{
+ "lesson": "2026-11-26",
+ "level": "beginner",
+ "note": "نص مستوى المبتدئ A1–A2 لدرس 26 نوفمبر: نفس الحقائق الثلاث، جمل قصيرة وبنية بسيطة. كُتب ودُقّق آليًا دون أي استدعاء مدفوع؛ لا يغيّر المتوسط ولا المتقدم.",
+ "beginner": {
+  "stories": [
+   {
+    "en": "Saudi Arabia, Turkey and Pakistan will have a meeting in Islamabad. They will talk about their defense agreement. The meeting is on Friday and Saturday. Two Pakistani sources say this.",
+    "ar": "ستعقد السعودية وتركيا وباكستان اجتماعاً في إسلام آباد. سيتحدثون عن اتفاقية الدفاع بينهم. الاجتماع يومي الجمعة والسبت. يقول مصدران باكستانيان ذلك."
+   },
+   {
+    "en": "Two airlines, Lufthansa Group and Air France, now fly to Dubai again. Dubai is a city in the United Arab Emirates.",
+    "ar": "شركتا طيران، هما مجموعة لوفتهانزا وإير فرانس، تطيران إلى دبي من جديد الآن. دبي مدينة في الإمارات العربية المتحدة."
+   },
+   {
+    "en": "Restaurants and cafes in Abu Dhabi must show the calories on their menus. The new rule starts in June 2027.",
+    "ar": "يجب على المطاعم والمقاهي في أبوظبي أن تعرض السعرات الحرارية على قوائمها. تبدأ القاعدة الجديدة في يونيو 2027."
+   }
+  ],
+  "words": [
+   {
+    "en": "talk",
+    "ar": "يتحدث"
+   },
+   {
+    "en": "friday",
+    "ar": "الجمعة"
+   },
+   {
+    "en": "saturday",
+    "ar": "السبت"
+   },
+   {
+    "en": "fly",
+    "ar": "يطير"
+   },
+   {
+    "en": "pakistani",
+    "ar": "باكستاني"
+   },
+   {
+    "en": "now",
+    "ar": "الآن"
+   },
+   {
+    "en": "group",
+    "ar": "مجموعة"
+   },
+   {
+    "en": "show",
+    "ar": "يعرض"
+   },
+   {
+    "en": "calories",
+    "ar": "السعرات الحرارية"
+   },
+   {
+    "en": "starts",
+    "ar": "يبدأ"
+   },
+   {
+    "en": "june",
+    "ar": "يونيو"
+   },
+   {
+    "en": "two",
+    "ar": "اثنان"
+   },
+   {
+    "en": "new",
+    "ar": "جديد"
+   },
+   {
+    "en": "rule",
+    "ar": "قاعدة"
+   },
+   {
+    "en": "meeting",
+    "ar": "اجتماع"
+   },
+   {
+    "en": "agreement",
+    "ar": "اتفاقية"
+   },
+   {
+    "en": "city",
+    "ar": "مدينة"
+   },
+   {
+    "en": "restaurants",
+    "ar": "مطاعم"
+   },
+   {
+    "en": "cafes",
+    "ar": "مقاهٍ"
+   },
+   {
+    "en": "airlines",
+    "ar": "شركات طيران"
+   }
+  ],
+  "translations": [
+   {
+    "word": "saudi",
+    "ar": "السعودية"
+   },
+   {
+    "word": "arabia",
+    "ar": "العربية"
+   },
+   {
+    "word": "turkey",
+    "ar": "تركيا"
+   },
+   {
+    "word": "and",
+    "ar": "و"
+   },
+   {
+    "word": "pakistan",
+    "ar": "باكستان"
+   },
+   {
+    "word": "will",
+    "ar": "سوف"
+   },
+   {
+    "word": "have",
+    "ar": "يملك / يعقد"
+   },
+   {
+    "word": "a",
+    "ar": "أداة تنكير"
+   },
+   {
+    "word": "meeting",
+    "ar": "اجتماع"
+   },
+   {
+    "word": "in",
+    "ar": "في"
+   },
+   {
+    "word": "islamabad",
+    "ar": "إسلام آباد"
+   },
+   {
+    "word": "they",
+    "ar": "هم"
+   },
+   {
+    "word": "talk",
+    "ar": "يتحدث"
+   },
+   {
+    "word": "about",
+    "ar": "عن"
+   },
+   {
+    "word": "their",
+    "ar": "الخاص بهم"
+   },
+   {
+    "word": "defense",
+    "ar": "الدفاع"
+   },
+   {
+    "word": "agreement",
+    "ar": "اتفاقية"
+   },
+   {
+    "word": "the",
+    "ar": "أداة تعريف"
+   },
+   {
+    "word": "is",
+    "ar": "يكون"
+   },
+   {
+    "word": "on",
+    "ar": "في / على"
+   },
+   {
+    "word": "friday",
+    "ar": "الجمعة"
+   },
+   {
+    "word": "saturday",
+    "ar": "السبت"
+   },
+   {
+    "word": "two",
+    "ar": "اثنان"
+   },
+   {
+    "word": "pakistani",
+    "ar": "باكستاني"
+   },
+   {
+    "word": "sources",
+    "ar": "مصادر"
+   },
+   {
+    "word": "say",
+    "ar": "يقول"
+   },
+   {
+    "word": "this",
+    "ar": "هذا"
+   },
+   {
+    "word": "airlines",
+    "ar": "شركات طيران"
+   },
+   {
+    "word": "lufthansa",
+    "ar": "لوفتهانزا"
+   },
+   {
+    "word": "group",
+    "ar": "مجموعة"
+   },
+   {
+    "word": "air",
+    "ar": "إير"
+   },
+   {
+    "word": "france",
+    "ar": "فرانس"
+   },
+   {
+    "word": "now",
+    "ar": "الآن"
+   },
+   {
+    "word": "fly",
+    "ar": "يطير"
+   },
+   {
+    "word": "to",
+    "ar": "إلى"
+   },
+   {
+    "word": "dubai",
+    "ar": "دبي"
+   },
+   {
+    "word": "again",
+    "ar": "من جديد"
+   },
+   {
+    "word": "city",
+    "ar": "مدينة"
+   },
+   {
+    "word": "united",
+    "ar": "المتحدة"
+   },
+   {
+    "word": "arab",
+    "ar": "العربية"
+   },
+   {
+    "word": "emirates",
+    "ar": "الإمارات"
+   },
+   {
+    "word": "restaurants",
+    "ar": "مطاعم"
+   },
+   {
+    "word": "cafes",
+    "ar": "مقاهٍ"
+   },
+   {
+    "word": "abu",
+    "ar": "أبو"
+   },
+   {
+    "word": "dhabi",
+    "ar": "ظبي"
+   },
+   {
+    "word": "must",
+    "ar": "يجب"
+   },
+   {
+    "word": "show",
+    "ar": "يعرض"
+   },
+   {
+    "word": "calories",
+    "ar": "السعرات الحرارية"
+   },
+   {
+    "word": "menus",
+    "ar": "قوائم الطعام"
+   },
+   {
+    "word": "new",
+    "ar": "جديد"
+   },
+   {
+    "word": "rule",
+    "ar": "قاعدة"
+   },
+   {
+    "word": "starts",
+    "ar": "يبدأ"
+   },
+   {
+    "word": "june",
+    "ar": "يونيو"
+   }
+  ],
+  "exercises": [
+   {
+    "question": "When is the meeting?",
+    "question_ar": "متى الاجتماع؟",
+    "options": [
+     "On Friday and Saturday",
+     "On Monday and Tuesday",
+     "Every morning",
+     "Next year"
+    ],
+    "answer": 0
+   },
+   {
+    "question": "Which two airlines fly to Dubai again?",
+    "question_ar": "ما شركتا الطيران اللتان تطيران إلى دبي من جديد؟",
+    "options": [
+     "Lufthansa Group and Air France",
+     "Qatar Airways and Etihad",
+     "Emirates and Qatar Airways",
+     "KLM and Delta"
+    ],
+    "answer": 0
+   },
+   {
+    "question": "When does the new rule start in Abu Dhabi?",
+    "question_ar": "متى تبدأ القاعدة الجديدة في أبوظبي؟",
+    "options": [
+     "In June 2027",
+     "In March 2026",
+     "Next week",
+     "Today"
+    ],
+    "answer": 0
+   }
+  ]
+ },
+ "advanced_exercise_1": {
+  "question": "Why will Saudi Arabia, Turkey and Pakistan convene in Islamabad?",
+  "question_ar": "لماذا ستجتمع السعودية وتركيا وباكستان في إسلام آباد؟",
+  "options": [
+   "To discuss their reciprocal defense agreement",
+   "To sign a trade deal",
+   "To open a new airline",
+   "To review calorie rules"
+  ],
+  "answer": 0
+ },
+ "advanced_exercise_3": {
+  "question": "When is the calorie mandate taking effect in Abu Dhabi?",
+  "question_ar": "متى سيبدأ سريان إلزام السعرات الحرارية في أبوظبي؟",
+  "options": [
+   "In June 2027",
+   "In March 2027",
+   "In December 2026",
+   "In September 2028"
+  ],
+  "answer": 0
+ },
+ "advanced_vocab": {
+  "replace": {
+   "officials": [
+    "ratify",
+    "يصادق على"
+   ],
+   "services": [
+    "curtail",
+    "يقلّص / يحدّ من"
+   ],
+   "post": [
+    "stipulate",
+    "ينصّ على / يشترط"
+   ],
+   "content": [
+    "disclosure",
+    "إفصاح"
+   ],
+   "effect": [
+    "compliance",
+    "امتثال"
+   ],
+   "discuss": [
+    "bilateral",
+    "ثنائي الأطراف"
+   ],
+   "according": [
+    "ramifications",
+    "تداعيات"
+   ],
+   "taking": [
+    "contingent",
+    "مشروط / مرهون بـ"
+   ]
+  },
+  "note": "الكلمات الثماني الجديدة مرتبطة بمواضيع الأخبار (دفاع، طيران، سعرات) لكنها ليست في نص المتقدم، لأن النص لا يحوي كلمات متقدمة كافية؛ والموقع لا يشترط وجود الكلمة في النص. تحتاج تدقيقًا عربيًا وتسجيلًا صوتيًا لـ 8 كلمات فقط (نحو 60 حرفًا).",
+  "optional_extra": {
+   "Pakistani": [
+    "accord",
+    "اتفاق رسمي"
+   ],
+   "Emirates": [
+    "resumption",
+    "استئناف"
+   ],
+   "note": "كلمتان إضافيتان في القائمة الأصلية هما اسما علم/جنسية (Pakistani, Emirates) لا تصلحان كمفردات؛ لم أغيّرهما لأنك طلبت ثماني كلمات فقط. بديلان مقترحان إن وافقت."
+  }
+ }
+}

@@ -106,6 +106,8 @@ def build(lessons_dir: Path | None = None, output: Path | None = None) -> str:
     for level in LEVELS:
         output.with_name(f"lessons-data-{level}.js").write_text(render(lessons, translations, level, True), encoding="utf-8")
     output.write_text(render(lessons, translations, DEFAULT_LEVEL), encoding="utf-8")
+    # ملف صغير جدًا (بضعة بايتات) يفحصه الموقع كل 5 دقائق للتنبيه بوجود درس أحدث؛ بلا أي تكلفة API
+    output.with_name("latest.json").write_text(json.dumps({"lesson": lessons[0]["key"]}) + "\n", encoding="utf-8")
     return lessons[0]["key"]
 
 

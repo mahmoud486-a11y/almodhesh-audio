@@ -132,66 +132,50 @@ class ValidationTests(unittest.TestCase):
 
 import multilevel as ml  # noqa: E402
 
-ML_COUNTRIES = ["Egypt", "Morocco", "Oman"]
-ML_POOL = ("students teachers schools doctors hospitals farmers workers markets prices factories engineers "
-           "scientists researchers players coaches artists museums festivals tourists hotels airports trains "
-           "banks companies startups phones computers robots satellites rockets clinics vaccines patients "
-           "rivers forests deserts beaches gardens parks bridges roads ports ships trucks buses libraries "
-           "universities classes exams lessons books films songs dancers singers writers").split()
-ML_WORDS_PER_SENTENCE = {"beginner": 8, "intermediate": 11, "advanced": 20}
+import copy  # noqa: E402
+import level_fixtures as lf  # noqa: E402
+
+ML_COUNTRIES = ["Saudi Arabia", "United Arab Emirates", "United Arab Emirates"]
 
 
 def ml_facts_answer():
-    cats = ["politics", "economy", "health"]
-    return {"archive_title": "سياسة، اقتصاد وصحة",
-            "stories": [{"news_id": i + 1, "category": cats[i], "country": c, "topic": f"عنوان {i + 1}",
-                         "facts": [f"{c} opened a new project.", "The project started this week."]}
-                        for i, c in enumerate(ML_COUNTRIES)]}
+    return copy.deepcopy(lf.FACTS)
 
 
 def ml_level_answer(level):
-    n = ML_WORDS_PER_SENTENCE[level]
-    stories, used = [], []
-    for i, c in enumerate(ML_COUNTRIES):
-        offset = {"beginner": 0, "intermediate": 20, "advanced": 36}[level]  # كلمات مختلفة لكل مستوى
-        chunk = [ML_POOL[(offset + i * n + k) % len(ML_POOL)] for k in range(n)]
-        used += chunk
-        lv_ar = {"beginner": "المبتدئ", "intermediate": "المتوسط", "advanced": "المتقدم"}[level]
-        stories.append({"en": f"{c} {level} " + " ".join(chunk) + ".", "ar": f"جملة عربية {i + 1} للمستوى {lv_ar}"})
-    words = list(dict.fromkeys(used))[:20]
-    gloss = [{"word": w, "ar": "ترجمة"} for w in dict.fromkeys(used + [c.lower() for c in ML_COUNTRIES] + [level])]
-    exercises = [{"question": f"What happened in {c}?", "question_ar": "ماذا حدث؟",
-                  "options": ["A project", "A storm", "A match", "A film"], "answer": 0} for c in ML_COUNTRIES[:3]]
-    return {"stories": stories, "words": [{"en": w, "ar": "معنى"} for w in words],
-            "translations": gloss, "exercises": exercises}
+    return lf.level_answer(level)
 
 
 class MultiLevelValidationTests(unittest.TestCase):
     def test_fixture_levels_are_valid(self):
         self.assertEqual(ml.validate_facts(ml_facts_answer(), news_items()), [])
-        for level in ml.LEVEL_ORDER:
-            self.assertEqual(ml.validate_level(ml_level_answer(level), level, {}, ml.LEVELS[level]["audio_max"]), [], level)
+        done = {}
+        for level in ("intermediate", "beginner", "advanced"):
+            d = ml_level_answer(level)
+            self.assertEqual(ml.validate_level(d, level, {}, ml.LEVELS[level]["audio_max"], dict(done), ml_facts_answer()), [], level)
+            done[level] = ml.build_level(d, ml_facts_answer(), news_items(), "claude")
 
     def test_lengths_are_level_specific(self):
         adv = ml_level_answer("advanced")
-        errs = ml.validate_level(adv, "beginner", {}, None)  # جمل المتقدم أطول من حد المبتدئ
-        self.assertTrue(any("English must be 30-130" in e for e in errs))
+        errs = ml.validate_level(adv, "beginner", {}, None)  # نص المتقدم لا يصلح للمبتدئ
+        self.assertTrue(any("English must be 40-210" in e for e in errs))
+        self.assertTrue(any("CEFR beginner: avg_sentence" in e for e in errs))
         beg = ml_level_answer("beginner")
-        self.assertTrue(any("English must be 90-230" in e for e in ml.validate_level(beg, "advanced", {}, None)))
+        self.assertTrue(any("CEFR advanced: avg_sentence" in e for e in ml.validate_level(beg, "advanced", {}, None)))
 
     def test_function_words_are_rejected(self):
         bad = ml_level_answer("beginner")
-        bad["stories"][0]["en"] = bad["stories"][0]["en"].replace("Egypt beginner", "Egypt as beginner")
         bad["words"][0] = {"en": "as", "ar": "بينما"}
         self.assertTrue(any("'as' is a function word" in e for e in ml.validate_level(bad, "beginner", {}, None)))
 
     def test_levels_must_differ(self):
         inter = ml.build_level(ml_level_answer("intermediate"), ml_facts_answer(), news_items(), "claude")
-        copy = ml_level_answer("intermediate")
-        errs = " | ".join(ml.validate_level(copy, "intermediate", {}, None, {"intermediate": inter}))
+        copy = ml_level_answer("intermediate")  # نص المتوسط نفسه تحت مستوى المبتدئ
+        errs = " | ".join(ml.validate_level(copy, "beginner", {}, None, {"intermediate": inter}))
         self.assertIn("already used by the intermediate level", errs)
         self.assertIn("identical to the intermediate level", errs)
         self.assertEqual(ml.validate_level(ml_level_answer("advanced"), "advanced", {}, None, {"intermediate": inter}), [])
+        self.assertIn("identical to the intermediate", " | ".join(ml.validate_level(copy, "beginner", {}, None, {"intermediate": inter})))
         prompt = ml.level_prompt(ml_facts_answer(), [], {"economy", "health"})
         self.assertIn("already taught in another level today", prompt)
 
@@ -220,7 +204,7 @@ class MultiLevelValidationTests(unittest.TestCase):
         facts["stories"].reverse()
         self.assertEqual(ml.validate_facts(facts, news_items()), [])  # أي ترتيب مقبول في الرد...
 
-        def fake(p, m, system=None, schema=None, effort="medium"):
+        def fake(p, m, system=None, schema=None, effort="medium", **kw):
             u = {"input_tokens": 1, "output_tokens": 1, "model": "claude-haiku-5-5"}
             if schema is ml.REVIEW_SCHEMA:
                 return {"corrections": []}, u
@@ -287,13 +271,13 @@ class PipelineTests(unittest.TestCase):
             code = dl.main(list(args) + ["--date", self.day])
         return code, out.getvalue()
 
-    def claude(self, bad_levels=(), bad_facts=False, review=None):
+    def claude(self, bad_levels=(), bad_facts=False, review=None, haiku_bad=()):
         """Claude محاكى: يميّز طلب الحقائق وطلب كل مستوى وطلب التدقيق، ويسجّل الطلبات."""
         usage = {"input_tokens": 4000, "output_tokens": 3000, "model": "claude-haiku-5-5"}
         self.review_models = []
         answers = list(review or [])
 
-        def fake(prompt, model, system=None, schema=None, effort="medium"):
+        def fake(prompt, model, system=None, schema=None, effort="medium", **kw):
             if schema is ml.REVIEW_SCHEMA:
                 self.calls.append("review")
                 self.review_models.append((model, effort))
@@ -302,8 +286,10 @@ class PipelineTests(unittest.TestCase):
                 self.calls.append("facts")
                 return ({"bad": 1} if bad_facts else ml_facts_answer()), usage
             level = next(l for l in ml.LEVEL_ORDER if f"Level: {l} (" in system)
-            self.calls.append(level)
-            return ({"stories": []} if level in bad_levels else ml_level_answer(level)), usage
+            sonnet = model == ml.FALLBACK_LEVEL_MODEL
+            self.calls.append(level + ("+sonnet" if sonnet else ""))
+            bad = level in bad_levels or (level in haiku_bad and not sonnet)
+            return ({"stories": []} if bad else ml_level_answer(level)), {**usage, "model": model}
         return mock.patch.object(dl, "call_claude", side_effect=fake)
 
     def tts(self, balance=35000):
@@ -340,7 +326,7 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual(len(v["words"]), 20)
             self.assertEqual(len(v["exercises"]), 3)
             self.assertNotIn("same_as", v)
-            self.assertIn(f"{level} ", self.data(level))
+            self.assertIn(v["stories"][0]["en"][:40], self.data(level))
         urls = {l: [s["url"] for s in lesson["levels"][l]["stories"]] for l in ml.LEVEL_ORDER}
         self.assertEqual(urls["beginner"], urls["advanced"])  # المصادر نفسها في كل المستويات
         self.assertEqual(urls["beginner"], [i.url for i in news_items()[:3]])
@@ -386,16 +372,17 @@ class PipelineTests(unittest.TestCase):
         fixes = {"corrections": [
             {"id": "s:beginner:0", "ar": "جملة عربية مصححة , وواضحة", "issue": "grammar"},
             {"id": "w:advanced:0", "ar": "طلاب", "issue": "meaning"},
-            {"id": "g:intermediate:egypt", "ar": "مصر", "issue": "spelling"},
+            {"id": "g:intermediate:meeting", "ar": "لقاء", "issue": "spelling"},
             {"id": "topic:1", "ar": "عنوان مصحح", "issue": "style"},
         ]}
-        code, out = self.full_run(review=[fixes])
+        with mock.patch.object(ml, "known_without", return_value={}):  # لا ترجمات سابقة: كل القاموس يُدقَّق
+            code, out = self.full_run(review=[fixes])
         self.assertEqual(code, 0, out)
         self.assertEqual(self.review_models, [("claude-sonnet-5-5", "high")])
         lesson = json.loads(self.lesson_path.read_text(encoding="utf-8"))
         self.assertEqual(lesson["levels"]["beginner"]["stories"][0]["ar"], "جملة عربية مصححة، وواضحة")  # فاصلة عربية
         self.assertEqual(lesson["levels"]["advanced"]["words"][0][1], "طلاب")
-        self.assertEqual(lesson["levels"]["intermediate"]["translations"]["egypt"], "مصر")
+        self.assertEqual(lesson["levels"]["intermediate"]["translations"]["meeting"], "لقاء")
         self.assertTrue(all(lesson["levels"][l]["stories"][1]["topic"] == "عنوان مصحح" for l in ml.LEVEL_ORDER))
         self.assertEqual(lesson["review"]["corrections"], 4)
         self.assertNotIn("pending_review", lesson)
@@ -443,22 +430,67 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(self.calls, [])
         self.assertEqual(self.spoken, [])
 
-    def test_disabled_level_reuses_intermediate_text_and_audio(self):
-        code, _ = self.full_run({"LESSON_LEVELS": "intermediate"})
-        self.assertEqual(code, 0)
-        self.assertEqual(self.calls, ["facts", "intermediate", "review"])
+    def test_haiku_failure_uses_sonnet_for_that_level_only(self):
+        code, out = self.full_run(haiku_bad=("beginner",))
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.calls, ["facts", "intermediate", "beginner", "beginner", "beginner", "beginner+sonnet",
+                                      "advanced", "review"])
         lesson = json.loads(self.lesson_path.read_text(encoding="utf-8"))
-        self.assertEqual(lesson["levels"]["beginner"]["same_as"], "intermediate")
-        self.assertLessEqual(len(self.spoken), 23 + 3)  # لا تسجيل مكرر: المستويات المنسوخة تعيد استخدام تسجيلات المتوسط (والعربية)
-        self.assertEqual(lesson["levels"]["beginner"]["audio"], lesson["levels"]["intermediate"]["audio"])
+        self.assertEqual(lesson["levels"]["beginner"]["generated_model"], ml.FALLBACK_LEVEL_MODEL)
+        self.assertEqual(lesson["levels"]["intermediate"]["generated_model"], "claude-haiku-5-5")
+        for v in lesson["levels"].values():
+            self.assertNotIn("same_as", v)
+        self.assertNotEqual(lesson["levels"]["beginner"]["stories"][0]["en"], lesson["levels"]["intermediate"]["stories"][0]["en"])
+        reasons = json.loads((self.tmp / "logs" / "validation-failures.json").read_text(encoding="utf-8"))
+        self.assertEqual([(r["step"], r["attempt"], r["kind"]) for r in reasons], [("beginner", 1, "validation"),
+                         ("beginner", 2, "validation"), ("beginner", 3, "validation")])
+        self.assertTrue(all(r["reasons"] for r in reasons))
 
-    def test_failed_level_falls_back_without_losing_the_day(self):
-        code, _ = self.full_run(bad_levels=("advanced",))
-        self.assertEqual(code, 0)
-        self.assertEqual(self.calls.count("advanced"), 3)
-        lesson = json.loads(self.lesson_path.read_text(encoding="utf-8"))
-        self.assertEqual(lesson["levels"]["advanced"]["same_as"], "intermediate")
-        self.assertNotIn("same_as", lesson["levels"]["beginner"])
+    def test_level_failing_everywhere_blocks_the_lesson_and_never_copies(self):
+        before = (self.site / "lessons-data-beginner.js").read_text(encoding="utf-8")
+        code, out = self.full_run(bad_levels=("beginner",))
+        self.assertEqual(code, 1, out)
+        self.assertFalse(self.lesson_path.exists())  # لا ملف درس ولا نشر؛ يبقى آخر درس صالح
+        self.assertEqual((self.site / "lessons-data-beginner.js").read_text(encoding="utf-8"), before)
+        self.assertEqual(self.calls.count("beginner+sonnet"), ml.FALLBACK_ATTEMPTS)
+        self.assertNotIn("review", self.calls)  # لا تدقيق ولا صوت لدرس موقوف
+        self.assertEqual(self.spoken, [])
+        failures = json.loads((self.tmp / "logs" / "validation-failures.json").read_text(encoding="utf-8"))
+        self.assertEqual(failures[-1]["kind"], "blocked")
+        self.assertIn("لا يُنشر الدرس", out)
+
+    def test_every_call_and_retry_is_charged_in_the_usage_log(self):
+        self.full_run(haiku_bad=("beginner",))
+        usage = json.loads((self.tmp / "logs" / "ai-usage.json").read_text(encoding="utf-8"))
+        steps = [u["step"] for u in usage]
+        self.assertEqual(steps.count("beginner"), 3)
+        self.assertEqual(steps.count("beginner-fallback"), 1)
+        self.assertTrue(all(u["est_cost_usd"] > 0 for u in usage))
+
+    def test_sonnet_fallback_is_refused_when_budget_cannot_cover_it(self):
+        usage = [{"date": f"{self.day[:7]}-01", "step": "x", "est_cost_usd": 2.20}]  # الشهر شبه مستنفد
+        (self.tmp / "logs").mkdir(parents=True, exist_ok=True)
+        (self.tmp / "logs" / "ai-usage.json").write_text(json.dumps(usage), encoding="utf-8")
+        code, out = self.full_run(haiku_bad=("beginner",))
+        self.assertEqual(code, 1, out)
+        self.assertNotIn("beginner+sonnet", self.calls)
+        failures = json.loads((self.tmp / "logs" / "validation-failures.json").read_text(encoding="utf-8"))
+        self.assertTrue(any(f["kind"] == "budget" for f in failures))
+
+    def test_budget_exhausted_sends_no_request_at_all(self):
+        usage = [{"date": f"{self.day[:7]}-01", "step": "x", "est_cost_usd": 2.39}]
+        (self.tmp / "logs").mkdir(parents=True, exist_ok=True)
+        (self.tmp / "logs" / "ai-usage.json").write_text(json.dumps(usage), encoding="utf-8")
+        code, out = self.full_run()
+        self.assertEqual(code, 1, out)
+        self.assertEqual(self.calls, [])
+        self.assertFalse(self.lesson_path.exists())
+
+    def test_budget_cannot_be_raised_above_2_40(self):
+        with mock.patch.dict(os.environ, {"CLAUDE_MONTHLY_BUDGET_USD": "50"}):
+            self.assertEqual(ml.budget.monthly_limit(), 2.40)
+        with mock.patch.dict(os.environ, {"CLAUDE_MONTHLY_BUDGET_USD": "1.5"}):
+            self.assertEqual(ml.budget.monthly_limit(), 1.5)
 
     def test_failed_facts_keep_last_valid_lesson(self):
         before = {l: self.data(l) for l in ml.LEVEL_ORDER}

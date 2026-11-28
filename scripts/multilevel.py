@@ -2,14 +2,14 @@
 
 الخطوات (كل خطوة مرة واحدة في اليوم):
 1. جلب الأخبار مرة واحدة (نفس مصادر وسياسة daily_lesson).
-2. طلب واحد لاختيار 6 أخبار واستخراج الحقائق فقط (نقاط قصيرة) — هذا يضمن تطابق الحقائق في المستويات الثلاثة.
+2. طلب واحد لاختيار 3 أخبار (سياسة، اقتصاد، صحة) واستخراج الحقائق فقط — هذا يضمن تطابق الحقائق في المستويات الثلاثة.
 3. طلب لكل مستوى يكتب الجمل من الحقائق بكلمات جديدة (لا يرى نص المقال)، مع الترجمة، و20 كلمة، و3 أسئلة فهم.
-4. الصوت: ElevenLabs للمستويات المحددة في AUDIO_LEVELS فقط وضمن الحد اليومي؛ أي نص متطابق يعيد استخدام تسجيله.
-   بقية المستويات تعمل بصوت المتصفح الأمريكي مجانًا.
+   Haiku أولًا (حتى 3 محاولات)؛ فإن فشل التحقق فمحاولتان بـ Sonnet لذلك المستوى وحده، وبشرط أن تتسع الميزانية.
+   لا يُنسخ نص مستوى إلى آخر أبدًا: إن تعذّر أي مستوى لا يُنشر الدرس ويبقى آخر درس صالح، وتفشل التشغيلة (تنبيه بالبريد).
+4. التدقيق اللغوي العربي (Sonnet) ثم صوت ElevenLabs لكل مستوى (ضمن الحد اليومي 3,300 حرف)؛ أي نص متطابق يعيد استخدام تسجيله.
+5. كل طلب إلى Claude يمر بحارس الميزانية الشهرية (budget.py، سقف 2.40 دولار) قبل إرساله، وكل رفض يُسجَّل بسببه
+   في logs/validation-failures.json.
 
-المتغيرات:
-  LESSON_LEVELS  المستويات التي تُكتب نصوصها بـ Claude (الافتراضي: الثلاثة). المستوى غير المفعّل يأخذ نص المتوسط.
-  AUDIO_LEVELS   المستويات التي تُولّد تسجيلاتها بـ ElevenLabs (الافتراضي: الثلاثة).
 لا يُستخدم صوت المتصفح أبدًا: الدرس لا يُنشر حتى تكتمل كل تسجيلاته؛ وحتى ذلك يبقى آخر درس مكتمل منشورًا.
 """
 from __future__ import annotations
@@ -23,8 +23,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import budget
+import cefr
 import daily_lesson as dl
-from daily_lesson import (ARABIC, MENA_COUNTRIES, MENA_KEYWORDS,
+from daily_lesson import (ARABIC, MENA_COUNTRIES, MENA_KEYWORDS, ClaudeCallError,
                           WORDS, read_json, summary, tokens, write_json)
 
 STORIES = 3           # ثلاثة أخبار يوميًا بالمستويات الثلاثة
@@ -41,23 +43,24 @@ DEFAULT_LEVEL = "intermediate"
 EXERCISES = 3
 LEVELS = {
     "beginner": {
-        "ar": "مبتدئ", "cefr": "A1–A2", "en_min": 30, "en_max": 130, "audio_max": 500,
-        "style": "CEFR A1–A2. One or two short sentences (6–12 words each), present or past simple, the 1,500 most common English "
-                 "words, no idioms, no passive voice. Vocabulary: concrete everyday words. Comprehension questions "
-                 "are very simple (who / what / where) with short options.",
+        "ar": "مبتدئ", "cefr": "A1–A2", "en_min": 40, "en_max": 210, "audio_max": 560,
+        "style": "CEFR A1–A2. Each story: two to four VERY short sentences (5–12 words each), present simple or 'will', "
+                 "the 1,500 most common English words, no passive voice, no relative clauses, no idioms, no "
+                 "participle phrases. Vocabulary: concrete everyday words (not news jargon). Comprehension questions "
+                 "are very simple (who / what / where / when) with short options.",
     },
     "intermediate": {
-        "ar": "متوسط", "cefr": "B1–B2", "en_min": 60, "en_max": 140, "audio_max": 600,
-        "style": "CEFR B1–B2. ONE natural sentence (14–24 words) that may use a relative clause, present perfect or "
-                 "passive voice. Vocabulary: common news and work words. Comprehension questions check the main "
-                 "idea and one detail.",
+        "ar": "متوسط", "cefr": "B1–B2", "en_min": 60, "en_max": 200, "audio_max": 560,
+        "style": "CEFR B1–B2. ONE natural sentence per story (15–26 words) that may use an infinitive of purpose, a "
+                 "relative clause, present perfect or passive voice. Vocabulary: common news and work words. "
+                 "Comprehension questions check the main idea and one detail.",
     },
     "advanced": {
-        "ar": "متقدم", "cefr": "C1–C2", "en_min": 90, "en_max": 230, "audio_max": 800,
-        "style": "CEFR C1–C2. One or two sophisticated sentences (22–38 words in total) in a professional news "
-                 "register: complex clauses, precise and formal vocabulary, natural collocations. Vocabulary: "
-                 "advanced and academic words. Comprehension questions test inference, cause and effect, or "
-                 "the meaning of a phrase in context.",
+        "ar": "متقدم", "cefr": "C1–C2", "en_min": 90, "en_max": 280, "audio_max": 780,
+        "style": "CEFR C1–C2. One or two sophisticated sentences per story (24–42 words in total) in an authentic "
+                 "news register: subordinate and participle clauses, passive or reduced constructions, precise formal "
+                 "vocabulary and natural collocations. Vocabulary: advanced, formal or academic words (not everyday words). "
+                 "Comprehension questions test inference, cause and effect, or the meaning of a phrase in context.",
     },
 }
 
@@ -70,7 +73,7 @@ def mirror_default(lesson: dict) -> None:
         lesson[k] = v[k]
 
 
-def env_levels(name: str, default: list[str]) -> list[str]:
+def _unused_env_levels(name: str, default: list[str]) -> list[str]:
     raw = os.environ.get(name, "").strip()
     if not raw:
         return default
@@ -215,6 +218,9 @@ Return:
 - "translations": an Arabic gloss for EVERY distinct word in your 3 texts ("word" lowercase as it appears without surrounding punctuation, keeping apostrophes and hyphens).
 - Audio limit: the 3 English texts plus the 20 words must total at most {audio_max} characters.
 - "exercises": exactly 3 multiple-choice comprehension questions about these stories, suited to this level. "question" in English, "question_ar" its Arabic translation, "options": exactly 4 short distinct English options, "answer": the index (0–3) of the correct option.
+- Quiz rule (strict): every question and its correct answer must be answerable from YOUR three English texts alone. Use words that appear in your texts; never ask about a detail that your text leaves out, even if it is in the facts. The three wrong options must be clearly wrong according to your texts.
+- Do not add any number, name, place or claim that is not in the facts. Keep attributions (for example "sources say") when the facts give them.
+- The three levels are checked automatically for sentence length, grammar, vocabulary difficulty and readability, so follow the level description exactly.
 """
 
 
@@ -234,7 +240,8 @@ def level_prompt(facts: dict, feedback, used_words=()) -> str:
 MAX_SHARED_WORDS = 6
 
 
-def validate_level(data: dict, level: str, known: dict, budget: int | None, others: dict | None = None) -> list[str]:
+def validate_level(data: dict, level: str, known: dict, budget_chars: int | None, others: dict | None = None,
+                   facts: dict | None = None) -> list[str]:
     cfg = LEVELS[level]
     errors = []
     for other, prev in (others or {}).items():  # المستويات مختلفة فعلًا: نصوص وكلمات
@@ -289,10 +296,19 @@ def validate_level(data: dict, level: str, known: dict, budget: int | None, othe
             errors.append(f"exercise {n}: question must be English")
         if not ARABIC.search(e.get("question_ar", "")):
             errors.append(f"exercise {n}: question_ar must be Arabic")
-    if budget is not None:
+    texts = [st.get("en", "").strip() for st in stories]
+    if len(texts) == STORIES and all(texts):
+        errors += cefr.validate_text_level(level, texts)
+        errors += cefr.validate_differentiation(
+            level, texts, {o: [st["en"] for st in prev["stories"]] for o, prev in (others or {}).items()})
+        if facts:
+            errors += cefr.validate_fact_support(texts, [st["facts"] for st in facts["stories"]])
+        errors += cefr.validate_exercise_support(exercises, texts)
+    errors += cefr.validate_words(level, [w.get("en", "").strip() for w in words])
+    if budget_chars is not None:
         chars = dl.audio_chars(stories, [[w.get("en", ""), ""] for w in words])
-        if chars > budget:
-            errors.append(f"sentences + words total {chars} characters; must be at most {budget}. Shorten sentences")
+        if chars > budget_chars:
+            errors.append(f"sentences + words total {chars} characters; must be at most {budget_chars}. Shorten sentences")
     return errors
 
 
@@ -359,15 +375,25 @@ def polish_arabic(text: str) -> str:
     return re.sub(r"\s{2,}", " ", text).strip()
 
 
-def review_items(lesson: dict) -> dict:
+def known_without(key: str) -> dict:
+    """الترجمات المعروضة فعلًا من دروس أخرى (الأقدم يغلب، كما في build_site_data) دون هذا الدرس."""
+    try:
+        lessons = [l for l in dl.build_site_data.load_lessons(dl.LESSONS_DIR) if l["key"] != key]
+    except ValueError:  # لا دروس منشورة بعد
+        lessons = []
+    return dl.build_site_data.merged_translations(lessons, dl.LESSONS_DIR / "_base-translations.json")
+
+
+def review_items(lesson: dict, levels=None, known=None) -> dict:
+    """نصوص التدقيق. كلمة القاموس الموجودة في درس سابق لا تُدقَّق: الموقع يعرض أول ترجمة لها (الأقدم يغلب)،
+    فترجمة هذا الدرس لها لا تُعرض أصلًا. أما كلمات الدرس وجمله وأسئلته فتُدقَّق كلها."""
+    known = known or {}
     items = {"archive": {"en": "Categories: politics, economy, health", "ar": lesson["archive_title"]}}
     mid = lesson["levels"][DEFAULT_LEVEL]
     for i, st in enumerate(mid["stories"]):
         items[f"topic:{i}"] = {"en": "Short title for: " + st["en"], "ar": st["topic"]}
-    for lv in LEVEL_ORDER:
+    for lv in (levels or LEVEL_ORDER):
         v = lesson["levels"][lv]
-        if v.get("same_as"):
-            continue
         ctx = lambda word: next((st["en"] for st in v["stories"] if word.lower() in tokens(st["en"])), "")
         for i, st in enumerate(v["stories"]):
             items[f"s:{lv}:{i}"] = {"en": st["en"], "ar": st["ar"]}
@@ -376,6 +402,8 @@ def review_items(lesson: dict) -> dict:
         for i, e in enumerate(v["exercises"]):
             items[f"q:{lv}:{i}"] = {"en": e["question"], "ar": e["question_ar"]}
         for word, ar in v["translations"].items():
+            if word.lower() in known:
+                continue
             items[f"g:{lv}:{word}"] = {"en": word, "sentence": ctx(word), "ar": ar}
     return items
 
@@ -407,32 +435,133 @@ def apply_review(lesson: dict, corrections: list[dict]) -> None:
         lesson["archive_title"] = by_id["archive"]
     for lv in LEVEL_ORDER:
         v = lesson["levels"][lv]
-        src = lesson["levels"][v["same_as"]] if v.get("same_as") else v
         for i, st in enumerate(v["stories"]):
             st["topic"] = by_id.get(f"topic:{i}", st["topic"])
-            st["ar"] = polish_arabic(by_id.get(f"s:{src is v and lv or v['same_as']}:{i}", st["ar"]))
-        key_lv = lv if src is v else v["same_as"]
+            st["ar"] = polish_arabic(by_id.get(f"s:{lv}:{i}", st["ar"]))
         for i, w in enumerate(v["words"]):
-            new = by_id.get(f"w:{key_lv}:{i}")
+            new = by_id.get(f"w:{lv}:{i}")
             if new:
                 if v["translations"].get(w[0].lower()) == w[1]:
                     v["translations"][w[0].lower()] = new
                 w[1] = new
         for i, e in enumerate(v["exercises"]):
-            e["question_ar"] = polish_arabic(by_id.get(f"q:{key_lv}:{i}", e["question_ar"]))
+            e["question_ar"] = polish_arabic(by_id.get(f"q:{lv}:{i}", e["question_ar"]))
         for word in list(v["translations"]):
-            v["translations"][word] = by_id.get(f"g:{key_lv}:{word}", v["translations"][word])
+            v["translations"][word] = by_id.get(f"g:{lv}:{word}", v["translations"][word])
 
 
-def run_review(lesson: dict, path: Path) -> bool:
-    model = os.environ.get("REVIEW_MODEL", "").strip() or REVIEW_MODEL
-    items = review_items(lesson)
-    data, cost = _ask(lambda fb: review_prompt(items, fb), lambda d: validate_review(d, items),
-                      REVIEW_PROMPT, REVIEW_SCHEMA, model, lesson["key"], "review", effort="high")
+# ---------------------------------------------------------------- الميزانية وسجل الرفض
+MAX_TOKENS = {"facts": 6000, "level": 16000, "level_fallback": 7000, "review": 8000}
+FALLBACK_LEVEL_MODEL = "claude-sonnet-5-5"  # احتياط لمستوى فاشل فقط، وبشرط أن تتسع الميزانية
+LEVEL_ATTEMPTS = 3        # محاولات Haiku لكل مستوى
+FALLBACK_ATTEMPTS = 2     # محاولات Sonnet لكل مستوى فاشل (كل محاولة تمر بحارس الميزانية)
+RESERVE_INPUT_TOKENS = {"level": 4000, "review": 25000}  # تقدير متحفظ لمدخلات الخطوات القادمة (المقاس: 1.7 ألف و16 ألف)
+
+
+def failures_path() -> Path:
+    return dl.AI_USAGE_PATH.with_name("validation-failures.json")
+
+
+def log_failure(key: str, step: str, model: str, attempt: int, reasons: list[str], kind: str = "validation") -> None:
+    """سبب كل رفض أو إعادة محاولة أو منع بالميزانية، بنصه الدقيق."""
+    log = read_json(failures_path(), [])
+    log.append({"date": key, "step": step, "model": model, "attempt": attempt, "kind": kind,
+                "reasons": [dl.tts.sanitize(r)[:400] for r in reasons][:40],
+                "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")})
+    write_json(failures_path(), log[-1000:])
+
+
+def worst_cost(model: str, input_tokens: int, max_tokens: int) -> float:
+    return budget.cost_of(dl.MODEL_PRICES, model, input_tokens, max_tokens, dl.DEFAULT_LESSON_MODEL)
+
+
+def review_model() -> str:
+    return os.environ.get("REVIEW_MODEL", "").strip() or REVIEW_MODEL
+
+
+def reserve_review() -> float:
+    return worst_cost(review_model(), RESERVE_INPUT_TOKENS["review"], MAX_TOKENS["review"])
+
+
+def reserve_levels(model: str, n: int) -> float:
+    return n * worst_cost(model, RESERVE_INPUT_TOKENS["level"], MAX_TOKENS["level"])
+
+
+def _ask(prompt_fn, validate_fn, system, schema, model, key, label, attempts=3, effort="medium",
+         max_tokens=16000, reserve_after=0.0, feedback0=None):
+    """طلب مع إعادة محاولة بتغذية راجعة دقيقة. يعيد (البيانات أو None، التكلفة، آخر الأسباب، هل منعته الميزانية).
+    قبل كل طلب: الإنفاق الشهري + أسوأ تكلفة لهذا الطلب + الخطوات الإلزامية التالية ≤ سقف الميزانية، وإلا لا يُرسَل."""
+    feedback, cost = list(feedback0 or []), 0.0
+    reasons: list[str] = list(feedback)
+    for attempt in range(1, attempts + 1):
+        prompt = prompt_fn(feedback)
+        in_tokens = budget.estimate_input_tokens(system, prompt)
+        worst = worst_cost(model, in_tokens, max_tokens)
+        spent = budget.month_spent(read_json(dl.AI_USAGE_PATH, []), key[:7])
+        allowed, why = budget.check(spent, worst, reserve_after)
+        if not allowed:
+            print(f"{label}: لم يُرسَل الطلب — {why}")
+            log_failure(key, label, model, attempt, [why], "budget")
+            return None, cost, [why], True
+        print(f"{label}: طلب من {model} (محاولة {attempt}) ...")
+        try:
+            data, usage = dl.call_claude(prompt, model, system=system, schema=schema, effort=effort, max_tokens=max_tokens)
+        except Exception as e:  # noqa: BLE001
+            msg = dl.tts.sanitize(e)[:300]
+            print(f"  فشل الطلب: {msg}")
+            if isinstance(e, ClaudeCallError):  # حوسب على الرد: يُسجَّل بتكلفته الفعلية
+                cost += dl.record_ai_usage(key, {**e.usage, "step": label, "error": True}, attempt)
+            else:  # لم يصل رد: نسجّل تكلفة المدخلات المقدَّرة فقط (احتياطًا)
+                cost += dl.record_ai_usage(key, {"input_tokens": in_tokens, "output_tokens": 0, "model": model,
+                                                 "step": label, "error": True}, attempt)
+            reasons = [f"API/response error: {msg}"]
+            log_failure(key, label, model, attempt, reasons, "error")
+            feedback = []
+            time.sleep(10)
+            continue
+        cost += dl.record_ai_usage(key, {**usage, "step": label}, attempt)
+        feedback = validate_fn(data)
+        if not feedback:
+            return data, cost, [], False
+        reasons = feedback
+        log_failure(key, label, model, attempt, feedback, "validation")
+        print("  رُفض:\n   - " + "\n   - ".join(feedback[:12]))
+    return None, cost, reasons, False
+
+
+def generate_level(level, facts, items, done, known, key, model, reserve_after):
+    """Haiku أولًا ثم (إن فشل التحقق) Sonnet لهذا المستوى وحده إن اتسعت الميزانية. لا نسخ من مستوى آخر أبدًا.
+    يعيد (البيانات أو None، التكلفة، النموذج الناجح)."""
+    cfg = LEVELS[level]
+    system = LEVEL_PROMPT.format(level_name=level, **{k: cfg[k] for k in ("cefr", "style", "en_min", "en_max", "audio_max")})
+    used = {(w["en"] if isinstance(w, dict) else w[0]).lower() for r in done.values() for w in r["words"]}
+    prompt_fn = lambda fb, u=used: level_prompt(facts, fb, u)
+    validate = lambda d: validate_level(d, level, known, cfg["audio_max"], done, facts)
+    data, cost, reasons, blocked = _ask(prompt_fn, validate, system, LEVEL_SCHEMA, model, key, level,
+                                        attempts=LEVEL_ATTEMPTS, max_tokens=MAX_TOKENS["level"], reserve_after=reserve_after)
+    if data is not None:
+        return data, cost, model
+    if blocked or model == FALLBACK_LEVEL_MODEL:
+        return None, cost, model
+    print(f"{level}: فشل Haiku؛ محاولة Sonnet لهذا المستوى وحده إن اتسعت الميزانية.")
+    data, extra, reasons, blocked = _ask(
+        prompt_fn, validate, system + "\nBe compact: no commentary, and give each gloss in one or two Arabic words.",
+        LEVEL_SCHEMA, FALLBACK_LEVEL_MODEL, key, f"{level}-fallback", attempts=FALLBACK_ATTEMPTS,
+        max_tokens=MAX_TOKENS["level_fallback"], reserve_after=reserve_after, feedback0=reasons)
+    return data, cost + extra, FALLBACK_LEVEL_MODEL
+
+
+def run_review(lesson: dict, path: Path, levels=None) -> bool:
+    model = review_model()
+    items = review_items(lesson, levels, known_without(lesson["key"]))
+    data, cost, reasons, _ = _ask(lambda fb: review_prompt(items, fb), lambda d: validate_review(d, items),
+                                  REVIEW_PROMPT, REVIEW_SCHEMA, model, lesson["key"], "review", effort="high",
+                                  max_tokens=MAX_TOKENS["review"])
     if data is None:
         lesson["pending_review"] = True
         write_json(path, lesson)
-        summary(f"❌ تعذر إكمال التدقيق اللغوي (تكلفة ${cost:.4f}). لا يُسجَّل الدرس ولا يُنشر؛ يبقى آخر درس صالح.")
+        summary(f"❌ تعذر إكمال التدقيق اللغوي (تكلفة ${cost:.4f}): {'; '.join(reasons)[:300]}. "
+                "لا يُسجَّل الدرس ولا يُنشر؛ يبقى آخر درس صالح.")
         return False
     apply_review(lesson, data["corrections"])
     lesson.pop("pending_review", None)
@@ -445,26 +574,8 @@ def run_review(lesson: dict, path: Path) -> bool:
     return True
 
 
-def _ask(prompt_fn, validate_fn, system, schema, model, key, label, attempts=3, effort="medium"):
-    feedback, cost = [], 0.0
-    for attempt in range(1, attempts + 1):
-        print(f"{label}: طلب من {model} (محاولة {attempt}) ...")
-        try:
-            data, usage = dl.call_claude(prompt_fn(feedback), model, system=system, schema=schema, effort=effort)
-        except Exception as e:  # noqa: BLE001
-            print(f"  فشل الطلب: {dl.tts.sanitize(e)[:300]}")
-            feedback = []
-            time.sleep(10)
-            continue
-        cost += dl.record_ai_usage(key, {**usage, "step": label}, attempt)
-        feedback = validate_fn(data)
-        if not feedback:
-            return data, cost
-        print("  رُفض:\n   - " + "\n   - ".join(feedback[:12]))
-    return None, cost
-
-
-def prepare(day: datetime, model: str, daily_cap: int, text_levels: list[str], audio_levels: list[str]) -> dict | None:
+def prepare(day: datetime, model: str, daily_cap: int | None = None, text_levels=None, audio_levels=None) -> dict | None:
+    """يُعدّ درس اليوم بالمستويات الثلاثة كلها. لا يوجد احتياط بالنسخ: أي مستوى يتعذّر يوقف الدرس كله."""
     key = day.strftime("%Y-%m-%d")
     path = dl.LESSONS_DIR / f"{key}.json"
     if path.exists():
@@ -480,39 +591,33 @@ def prepare(day: datetime, model: str, daily_cap: int, text_levels: list[str], a
         summary(f"⚠️ عدد الأخبار الحديثة غير كافٍ ({len(items)})؛ يبقى آخر درس صالح.")
         return None
 
-    facts, total = _ask(lambda fb: facts_prompt(items, fb), lambda d: validate_facts(d, items),
-                        FACTS_PROMPT, FACTS_SCHEMA, model, key, "facts")
+    order = sorted(LEVEL_ORDER, key=lambda l: l != DEFAULT_LEVEL)  # المتوسط أولًا
+    facts, total, reasons, _ = _ask(
+        lambda fb: facts_prompt(items, fb), lambda d: validate_facts(d, items), FACTS_PROMPT, FACTS_SCHEMA, model, key,
+        "facts", max_tokens=MAX_TOKENS["facts"], reserve_after=reserve_levels(model, len(order)) + reserve_review())
     if facts is None:
-        summary("❌ تعذر اختيار أخبار صالحة. يبقى آخر درس صالح.")
+        log_failure(key, "lesson", model, 0, reasons or ["facts step failed"], "blocked")
+        summary("❌ تعذر اختيار أخبار صالحة. لا يُنشر درس جديد ويبقى آخر درس صالح. السبب: " + "; ".join(reasons)[:300])
         return None
     facts["stories"].sort(key=lambda s: CATEGORIES.index(s["category"]))
 
     known = dl.known_translations()
     results: dict[str, dict] = {}
-    # المتوسط أولًا: هو المستوى الافتراضي وبديل أي مستوى يفشل
-    for level in sorted(text_levels, key=lambda l: l != DEFAULT_LEVEL):
-        cfg = LEVELS[level]
-        system = LEVEL_PROMPT.format(level_name=level, **{k: cfg[k] for k in ("cefr", "style", "en_min", "en_max", "audio_max")})
-        budget = cfg["audio_max"] if level in audio_levels else None
-        done = dict(results)
-        used = {(w["en"] if isinstance(w, dict) else w[0]).lower() for r in done.values() for w in r["words"]}
-        data, cost = _ask(lambda fb, u=used: level_prompt(facts, fb, u),
-                          lambda d, lv=level, b=budget, o=done: validate_level(d, lv, known, b, o),
-                          system, LEVEL_SCHEMA, model, key, level)
+    models: dict[str, str] = {}
+    for n, level in enumerate(order):
+        after = reserve_levels(model, len(order) - n - 1) + reserve_review()
+        data, cost, used_model = generate_level(level, facts, items, dict(results), known, key, model, after)
         total += cost
-        if data is not None:
-            results[level] = build_level(data, facts, items, "claude")
-    if not results:
-        summary(f"❌ تعذر إعداد أي مستوى (تكلفة ${total:.4f}). يبقى آخر درس صالح.")
-        return None
+        if data is None:
+            log_failure(key, level, used_model, 0, ["no valid text for this level"], "blocked")
+            summary(f"❌ تعذر إعداد مستوى {LEVELS[level]['ar']} ({LEVELS[level]['cefr']}) بعد كل المحاولات المسموحة "
+                    f"(تكلفة ${total:.4f}). لا يُنشر الدرس ولا يُنسخ نص من مستوى آخر؛ يبقى آخر درس صالح. "
+                    "الأسباب الدقيقة في logs/validation-failures.json")
+            return None
+        results[level] = build_level(data, facts, items, "claude")
+        results[level]["generated_model"] = used_model
 
-    base = DEFAULT_LEVEL if DEFAULT_LEVEL in results else next(iter(results))
-    levels = {}
-    for level in LEVEL_ORDER:
-        if level in results:
-            levels[level] = results[level]
-        else:  # المستوى غير المفعّل أو الذي فشل يعرض نص مستوى آخر (لا يتوقف الدرس)
-            levels[level] = {**results[base], "same_as": base, "audio": {"stories": None, "words": None}}
+    levels = {level: results[level] for level in LEVEL_ORDER}
     lesson = {
         "key": key,
         "date": dl.arabic_long_date(day),
@@ -528,8 +633,8 @@ def prepare(day: datetime, model: str, daily_cap: int, text_levels: list[str], a
     }
     mirror_default(lesson)
     write_json(path, lesson)
-    made = ", ".join(f"{LEVELS[l]['ar']}" + ("" if l in results else f" (=نص {LEVELS[base]['ar']})") for l in LEVEL_ORDER)
-    summary(f"✅ أُعدّ درس {key} بالمستويات: {made} — تكلفة تقديرية ${total:.4f}")
+    summary(f"✅ أُعدّ درس {key} بالمستويات الثلاثة ({', '.join(LEVELS[l]['ar'] + ' ' + results[l]['generated_model'] for l in LEVEL_ORDER)}) "
+            f"— تكلفة تقديرية ${total:.4f}")
     return lesson if run_review(lesson, path) else None
 
 

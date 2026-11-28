@@ -68,7 +68,8 @@
 
   let state = null;
   const keys = weekKeys();
-  const bestKey = `quiz-week-best-${keys[keys.length - 1] || ""}-${lessonDate}`;
+  // أفضل نتيجة لكل مستوى على حدة (تبديل المستوى لا يخلط النتائج)
+  const bestKey = `quiz-week-best-${keys[keys.length - 1] || ""}-${lessonDate}-${window.almodheshLevel || "intermediate"}`;
   // يُعرض في تبويب «الاختبار الأسبوعي» في الأعلى
   function section() {
     let el = document.getElementById("weeklyQuiz");

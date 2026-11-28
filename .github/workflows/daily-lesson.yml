@@ -6,9 +6,11 @@ on:
       mode:
         description: >-
           news-check = فحص مصادر الأخبار (مجاني) | voice-info = تحديد صوت درس 21 نوفمبر (مجاني) |
-          run = إعداد درس اليوم وصوته ونشره | audio-only = إكمال الصوت الناقص لأحدث درس | deploy-only = إعادة النشر فقط
+          run = إعداد درس اليوم وصوته ونشره | audio-only = إكمال الصوت الناقص لأحدث درس | deploy-only = إعادة النشر فقط |
+          notify-test = بلاغ اختباري مجاني للتأكد من وصول إشعار الفشل إلى بريدك |
+          repair-2026-11-26 = إصلاح درس 26 نوفمبر (مدفوع بسقف الميزانية؛ شغّله في يوم مراجعة: الجمعة أو السبت)
         type: choice
-        options: [news-check, voice-info, run, audio-only, deploy-only]
+        options: [news-check, voice-info, run, audio-only, deploy-only, notify-test, repair-2026-11-26]
         default: news-check
 
   # يوميًا 6:00 صباحًا بتوقيت أوتاوا. GitHub يستخدم UTC فقط، لذا موعدان وخطوة تحقق تسمح بواحد فقط:
@@ -19,6 +21,7 @@ on:
 
 permissions:
   contents: write
+  issues: write   # فتح بلاغ فشل (يصلك بالبريد) عند تعذّر نشر درس اليوم
 
 # تحويل واحد فقط في أي وقت (مشترك مع سير عمل الصوت العربي)
 concurrency:
@@ -67,6 +70,25 @@ jobs:
           pip install -q -r requirements.txt
           python -m unittest discover -s tests
 
+      # كتابة مسبقة: تُسجَّل التشغيلة «بدأت» وتُدفع قبل أي طلب مدفوع؛ فإن مات المُشغِّل تحتسبها التشغيلة التالية في
+      # ميزانية الشهر بدل أن يضيع استهلاكها. إن فشل الدفع تتوقف التشغيلة قبل أي استدعاء مدفوع.
+      - name: Reserve this run in the ledger
+        id: ledger
+        if: ${{ steps.gate.outputs.run == 'true' && (github.event_name == 'schedule' || inputs.mode == 'run' || inputs.mode == 'repair-2026-11-26') }}
+        run: |
+          python scripts/ledger.py begin
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add logs/
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -q -m "Ledger: run start [skip ci]"
+          for i in 1 2 3; do
+            if git pull --rebase -q && git push -q; then exit 0; fi
+            sleep $((i * 5))
+          done
+          echo "تعذّر حفظ دفتر التشغيلات؛ لا استدعاءات مدفوعة في هذه التشغيلة."
+          exit 1
+
       - name: Run
         id: run
         if: steps.gate.outputs.run == 'true'
@@ -76,9 +98,8 @@ jobs:
           LESSON_MODEL: ${{ vars.LESSON_MODEL }}
           ELEVENLABS_LESSON_VOICE_ID: ${{ vars.ELEVENLABS_LESSON_VOICE_ID }}
           ELEVENLABS_LESSON_MODEL_ID: ${{ vars.ELEVENLABS_LESSON_MODEL_ID }}
-          # المستويات الثلاثة نصًا وصوتًا (ElevenLabs فقط)؛ يمكن تقييدها بهذين المتغيرين
-          LESSON_LEVELS: ${{ vars.LESSON_LEVELS }}
-          AUDIO_LEVELS: ${{ vars.AUDIO_LEVELS }}
+          # سقف ميزانية Claude الشهرية 2.40 دولار مفروض في الكود (يمكن خفضه بالمتغير لا رفعه)
+          CLAUDE_MONTHLY_BUDGET_USD: ${{ vars.CLAUDE_MONTHLY_BUDGET_USD }}
           MODE: ${{ github.event_name == 'schedule' && 'run' || inputs.mode }}
         run: |
           echo "mode=$MODE" >> "$GITHUB_OUTPUT"
@@ -88,13 +109,15 @@ jobs:
             run)         python scripts/daily_lesson.py run ;;
             audio-only)  python scripts/daily_lesson.py audio ;;
             deploy-only) echo "إعادة نشر فقط." ;;
+            notify-test) echo "اختبار الإشعار (مجاني)." ;;
+            repair-2026-11-26) python scripts/repair_2026_11_26.py --apply --finish ;;
             *) echo "وضع غير معروف: $MODE"; exit 1 ;;
           esac
 
       # يُحفظ ما أُنجز حتى لو فشل جزء (مثل نقص الصوت)، كي لا يُعاد توليده ولا يضيع سجل الاستهلاك
       - name: Commit lesson, audio and logs
         id: commit
-        if: ${{ !cancelled() && steps.gate.outputs.run == 'true' && (steps.run.outputs.mode == 'run' || steps.run.outputs.mode == 'audio-only') }}
+        if: ${{ always() && steps.gate.outputs.run == 'true' && (steps.run.outputs.mode == 'run' || steps.run.outputs.mode == 'audio-only' || steps.run.outputs.mode == 'repair-2026-11-26') }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -106,6 +129,38 @@ jobs:
             sleep $((i * 5))
           done
           exit 1
+
+      # حتى لو تعذّر الدفع (مثل تعارض)، يُرفع سجل الاستهلاك كملف محفوظ كي لا يضيع ويمكن إعادة إدخاله
+      - name: Keep usage logs if commit failed
+        if: ${{ always() && steps.gate.outputs.run == 'true' && (steps.commit.outcome == 'failure' || steps.ledger.outcome == 'failure') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: usage-logs-${{ github.run_id }}
+          path: logs/
+          retention-days: 30
+
+      # فشل النشر (مستوى لم يجتز التحقق، ميزانية، تدقيق، صوت ناقص...): بلاغ يصلك بالبريد مع الأسباب الدقيقة.
+      # يبقى آخر درس صالح منشورًا، ولا يُنسخ أي نص بين المستويات.
+      - name: Open failure issue (email notification)
+        if: ${{ (failure() || cancelled()) && steps.gate.outputs.run == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OWNER: ${{ github.repository_owner }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          export DAY=$(TZ="$TIMEZONE" date +%F)
+          python3 scripts/notify_failure.py
+
+      # اختبار مجاني لوصول البريد (لا Claude ولا ElevenLabs)
+      - name: Notification test issue
+        if: ${{ steps.gate.outputs.run == 'true' && steps.run.outputs.mode == 'notify-test' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OWNER: ${{ github.repository_owner }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          export DAY=$(TZ="$TIMEZONE" date +%F)
+          python3 scripts/notify_failure.py --test
 
   deploy:
     needs: lesson

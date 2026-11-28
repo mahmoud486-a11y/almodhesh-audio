@@ -29,6 +29,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import budget  # noqa: E402
 import build_site_data  # noqa: E402
 import generate_audio as tts  # noqa: E402
 
@@ -316,14 +317,22 @@ def news_prompt(items: list[NewsItem], budget: int, feedback: list[str]) -> str:
     return "\n".join(lines)
 
 
+class ClaudeCallError(RuntimeError):
+    """فشل بعد أن حاسبت الخدمة على الرد (رفض أو انقطاع max_tokens): يحمل الاستهلاك الفعلي ليُسجَّل ويُحتسب في الميزانية."""
+
+    def __init__(self, message: str, usage: dict):
+        super().__init__(message)
+        self.usage = usage
+
+
 def call_claude(prompt: str, model: str, system: str | None = None, schema: dict | None = None,
-                effort: str = "medium") -> tuple[dict, dict]:
+                effort: str = "medium", max_tokens: int = 16000) -> tuple[dict, dict]:
     import anthropic  # يُستورد هنا حتى تعمل الأوامر الأخرى دون المكتبة
 
     client = anthropic.Anthropic()  # يقرأ ANTHROPIC_API_KEY من البيئة
     kwargs = dict(
         model=model,
-        max_tokens=16000,
+        max_tokens=max_tokens,
         system=system or SYSTEM_PROMPT,
         messages=[{"role": "user", "content": prompt}],
         output_config={"effort": effort, "format": {"type": "json_schema", "schema": schema or LESSON_SCHEMA}},
@@ -334,13 +343,13 @@ def call_claude(prompt: str, model: str, system: str | None = None, schema: dict
             betas=["server-side-fallback-2026-07-01"], fallbacks="default", **kwargs)
     else:
         response = client.messages.create(**kwargs)
-    if response.stop_reason == "refusal":
-        raise RuntimeError(f"رفض النموذج الطلب: {getattr(response, 'stop_details', None)}")
-    if response.stop_reason == "max_tokens":
-        raise RuntimeError("انقطع رد النموذج (max_tokens)")
-    text = next(b.text for b in response.content if b.type == "text")
     usage = {"input_tokens": response.usage.input_tokens, "output_tokens": response.usage.output_tokens,
              "model": response.model}
+    if response.stop_reason == "refusal":
+        raise ClaudeCallError(f"رفض النموذج الطلب: {getattr(response, 'stop_details', None)}", usage)
+    if response.stop_reason == "max_tokens":
+        raise ClaudeCallError("انقطع رد النموذج (max_tokens)", usage)
+    text = next(b.text for b in response.content if b.type == "text")
     return json.loads(text), usage
 
 
@@ -440,11 +449,12 @@ def to_lesson(data: dict, items: list[NewsItem], day: datetime) -> dict:
 
 
 def record_ai_usage(day: str, usage: dict, attempt: int) -> float:
-    inp, out = MODEL_PRICES.get(usage["model"], MODEL_PRICES.get(DEFAULT_LESSON_MODEL))
-    cost = usage["input_tokens"] / 1e6 * inp + usage["output_tokens"] / 1e6 * out
+    cost = budget.cost_of(MODEL_PRICES, usage["model"], usage["input_tokens"], usage["output_tokens"], DEFAULT_LESSON_MODEL)
     log = read_json(AI_USAGE_PATH, [])
-    log.append({"date": day, "attempt": attempt, **usage, "est_cost_usd": round(cost, 5)})
-    write_json(AI_USAGE_PATH, log[-400:])
+    log.append({"date": day, "attempt": attempt, **usage, "est_cost_usd": round(cost, 5),
+                "at": budget.utc_now().strftime("%Y-%m-%dT%H:%M:%SZ"),  # وقت الاستهلاك الفعلي، أساس حساب شهر الفوترة
+                "run_id": (os.environ.get("GITHUB_RUN_ID", "") + "-" + os.environ.get("GITHUB_RUN_ATTEMPT", "1")) if os.environ.get("GITHUB_RUN_ID") else "local"})
+    write_json(AI_USAGE_PATH, log[-2000:])
     return cost
 
 
@@ -619,8 +629,7 @@ def main(argv=None) -> int:
         return 0
 
     import multilevel as ml  # الدرس بثلاثة مستويات (مبتدئ، متوسط، متقدم)
-    text_levels = ml.env_levels("LESSON_LEVELS", list(ml.LEVEL_ORDER))
-    audio_levels = ml.env_levels("AUDIO_LEVELS", list(ml.LEVEL_ORDER))
+    text_levels = audio_levels = list(ml.LEVEL_ORDER)  # المستويات الثلاثة دائمًا نصًا وصوتًا؛ لا مستوى يُنسخ من آخر
     if args.command == "backfill":
         ok = ml.backfill(args.daily_max_chars)
         print(f"أحدث درس في الموقع: {build_site_data.build(LESSONS_DIR, SITE / 'lessons-data.js')}")
@@ -630,7 +639,11 @@ def main(argv=None) -> int:
     ok = True
     if args.command in ("prepare", "run"):
         # حجم الدرس الصوتي لا يتجاوز الحد اليومي؛ والاستهلاك الفعلي يُفحص مرة أخرى قبل التوليد
-        ok = ml.prepare(day, model, args.daily_max_chars, text_levels, audio_levels) is not None
+        try:
+            ok = ml.prepare(day, model, args.daily_max_chars, text_levels, audio_levels) is not None
+        finally:
+            import ledger  # يُغلق دفتر التشغيلات (إن فُتح) كي لا تُحتسب التشغيلة منقطعة
+            ledger.end()
     if args.command == "audio" or (args.command == "run" and ok):
         ok = ml.generate_audio(args.daily_max_chars, audio_levels) and ok
     if args.command in ("run", "audio"):
